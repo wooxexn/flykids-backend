@@ -43,7 +43,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/swagger-resources/**"
+                                "/swagger-resources/**",
+                                "/api/drone/position-log",
+                                "/api/route/points" // POST + GET 모두 허용
                         ).permitAll()
                         .anyRequest().authenticated()
                 );
