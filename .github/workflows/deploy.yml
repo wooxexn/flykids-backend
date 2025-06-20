@@ -30,7 +30,7 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
           source: "build/libs/flykids-backend-0.0.1-SNAPSHOT.jar"
-          target: "/home/ec2-user/app/"
+          target: "/home/ec2-user/flykids-backend/build/libs/"
 
       - name: SSH and restart app
         uses: appleboy/ssh-action@master
