@@ -40,5 +40,5 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
           script: |
-            pkill -f 'java -jar' || true
-            nohup java -jar /home/ec2-user/app/flykids-backend.jar > /home/ec2-user/app/app.log 2>&1 &
+            sudo systemctl daemon-reload
+            sudo systemctl restart flykids-backend.service
