@@ -38,6 +38,10 @@ public class RoutePointService {
      * @param pointList 저장할 기준 좌표 DTO 리스트
      */
     public void saveRoutePoints(List<RoutePointRequestDto> pointList) {
+        if (pointList == null || pointList.isEmpty()) {
+            throw new IllegalArgumentException("저장할 경로 좌표 목록이 없습니다.");
+        }
+
         List<RoutePoint> routePoints = pointList.stream()
                 .map(dto -> RoutePoint.builder()
                         .missionId(dto.getMissionId())

@@ -17,6 +17,7 @@ import java.util.List;
  *
  * 유니티 클라이언트에서 수신한 드론 좌표 데이터를 DB에 저장하고,
  * 기준 경로와 비교하여 경로 이탈 여부를 판단한다.
+ * 예외 발생 시 적절한 메시지로 처리되도록 수정함.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,40 +34,63 @@ public class DronePositionService {
      *
      * @param requestDto 클라이언트에서 전송한 드론 위치 정보
      * @return 이탈 여부 및 메시지를 포함한 응답 문자열
+     * @throws IllegalArgumentException 미션 ID 또는 드론 ID가 없거나 유효하지 않을 경우
+     * @throws RuntimeException DB 저장 중 오류 발생 시
      */
     public String savePosition(DronePositionRequestDto requestDto) {
-        DronePositionLog log = DronePositionLog.builder()
-                .droneId(requestDto.getDroneId())
-                .missionId(requestDto.getMissionId())
-                .x(requestDto.getX())
-                .y(requestDto.getY())
-                .z(requestDto.getZ())
-                .rotationY(requestDto.getRotationY())
-                .build();
+        // 입력값 검증
+        if (requestDto == null
+                || requestDto.getMissionId() == null || requestDto.getMissionId() <= 0
+                || requestDto.getDroneId() == null || requestDto.getDroneId().isBlank()) {
+            throw new IllegalArgumentException("유효하지 않은 드론 위치 정보입니다.");
+        }
 
-        dronePositionLogRepository.save(log);
-
-        List<RoutePoint> routePoints = routePointService.getRouteByMissionId(requestDto.getMissionId());
-
-        boolean isOut = isOutOfRoute(log, routePoints);
-
-        if (isOut) {
-            RouteDeviationLog deviationLog = RouteDeviationLog.builder()
-                    .missionId(requestDto.getMissionId())
+        try {
+            // 드론 위치 로그 엔티티 생성 및 저장
+            DronePositionLog log = DronePositionLog.builder()
                     .droneId(requestDto.getDroneId())
+                    .missionId(requestDto.getMissionId())
                     .x(requestDto.getX())
                     .y(requestDto.getY())
                     .z(requestDto.getZ())
                     .rotationY(requestDto.getRotationY())
-                    .timestamp(LocalDateTime.now())
                     .build();
 
-            routeDeviationLogRepository.save(deviationLog);
+            dronePositionLogRepository.save(log);
 
-            return "경고: 드론이 기준 경로를 이탈했습니다.";
+            // 미션 ID 기반 기준 경로 조회
+            List<RoutePoint> routePoints = routePointService.getRouteByMissionId(requestDto.getMissionId());
+
+            // 기준 경로 존재 여부 체크
+            if (routePoints == null || routePoints.isEmpty()) {
+                throw new IllegalArgumentException("해당 미션의 기준 경로가 존재하지 않습니다.");
+            }
+
+            // 기준 경로와 비교하여 경로 이탈 여부 판단
+            boolean isOut = isOutOfRoute(log, routePoints);
+
+            if (isOut) {
+                // 경로 이탈 로그 생성 및 저장
+                RouteDeviationLog deviationLog = RouteDeviationLog.builder()
+                        .missionId(requestDto.getMissionId())
+                        .droneId(requestDto.getDroneId())
+                        .x(requestDto.getX())
+                        .y(requestDto.getY())
+                        .z(requestDto.getZ())
+                        .rotationY(requestDto.getRotationY())
+                        .timestamp(LocalDateTime.now())
+                        .build();
+
+                routeDeviationLogRepository.save(deviationLog);
+
+                return "경고: 드론이 기준 경로를 이탈했습니다.";
+            }
+
+            return "드론 위치가 정상적으로 저장되었습니다.";
+
+        } catch (Exception ex) {
+            throw new RuntimeException("드론 위치 저장 중 오류가 발생했습니다: " + ex.getMessage(), ex);
         }
-
-        return "드론 위치가 정상적으로 저장되었습니다.";
     }
 
     /**

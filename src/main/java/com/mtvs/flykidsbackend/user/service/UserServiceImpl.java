@@ -3,11 +3,12 @@ package com.mtvs.flykidsbackend.user.service;
 import com.mtvs.flykidsbackend.config.JwtUtil;
 import com.mtvs.flykidsbackend.user.dto.LoginRequestDto;
 import com.mtvs.flykidsbackend.user.dto.SignupRequestDto;
-import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;  // 토큰 응답용 DTO 임포트
+import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
 import com.mtvs.flykidsbackend.user.entity.Role;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -65,13 +66,13 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public TokenResponseDto login(LoginRequestDto requestDto) {
-        // 아이디 존재 여부 확인
+        // 아이디 존재 여부 확인, 없으면 BadCredentialsException 던짐
         User user = userRepository.findByUsername(requestDto.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+                .orElseThrow(() -> new BadCredentialsException("존재하지 않는 아이디입니다."));
 
-        // 비밀번호 확인
+        // 비밀번호 확인, 틀리면 BadCredentialsException 던짐
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
         }
 
         // 액세스 토큰 생성
