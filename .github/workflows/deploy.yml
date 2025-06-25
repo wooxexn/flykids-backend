@@ -43,11 +43,17 @@ jobs:
           ssh -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo SSH Connection OK"
 
-      # 7. 배포 (JAR 복사 + 실행)
+      # 7. 배포 (기존 app.jar 제거 + 복사 + 실행)
       - name: Deploy to EC2
         run: |
+          # 1) 기존 app.jar 파일 또는 디렉토리 제거
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "rm -rf /home/${{ secrets.EC2_USER }}/app.jar"
+
+          # 2) 새 JAR 복사
           scp -o StrictHostKeyChecking=no build/libs/*.jar \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app.jar
+
+          # 3) 기존 프로세스 종료 후 실행
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
             pkill -f 'java -jar' || true
             nohup java -jar /home/${{ secrets.EC2_USER }}/app.jar > app.log 2>&1 &
