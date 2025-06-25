@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 소스 체크아웃
+      # 1. GitHub 리포지토리 소스 체크아웃
       - name: Checkout source
         uses: actions/checkout@v3
 
-      # 2. SSH 키 설정
+      # 2. SSH 키 설정 (비공개 키 등록)
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -21,24 +21,29 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 3. 빌드
+      # 3. Gradle로 빌드 (테스트는 생략)
       - name: Build JAR
         run: |
           chmod +x ./gradlew
           ./gradlew clean build -x test
 
-      # 4. ──[디버그] SSH 접속 시험──
+      # 4. SSH 접속이 정상 동작하는지 확인
       - name: Debug SSH connection
         run: |
           ssh -v -o StrictHostKeyChecking=no \
               ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo OK"
 
-      # 5. 배포
+      # 5. 빌드된 JAR 파일 존재 확인
+      - name: Check JAR
+        run: |
+          ls -al build/libs/
+
+      # 6. EC2로 JAR 복사 및 실행
       - name: Deploy to EC2
         run: |
-          scp -o StrictHostKeyChecking=no build/libs/*.jar \
+          scp -v -o StrictHostKeyChecking=no build/libs/*.jar \
               ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app.jar
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
             pkill -f 'java -jar' || true
             nohup java -jar /home/${{ secrets.EC2_USER }}/app.jar > app.log 2>&1 &
           "
