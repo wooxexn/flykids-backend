@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 소스 체크아웃
       - name: Checkout source
         uses: actions/checkout@v3
 
+      # 2. SSH 키 설정
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -19,14 +21,23 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      # 3. 빌드
       - name: Build JAR
         run: |
           chmod +x ./gradlew
           ./gradlew clean build -x test
 
+      # 4. ──[디버그] SSH 접속 시험──
+      - name: Debug SSH connection
+        run: |
+          ssh -v -o StrictHostKeyChecking=no \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo OK"
+
+      # 5. 배포
       - name: Deploy to EC2
         run: |
-          scp build/libs/*.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app.jar
+          scp -o StrictHostKeyChecking=no build/libs/*.jar \
+              ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app.jar
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
             pkill -f 'java -jar' || true
             nohup java -jar /home/${{ secrets.EC2_USER }}/app.jar > app.log 2>&1 &
