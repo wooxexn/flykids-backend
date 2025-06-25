@@ -21,23 +21,29 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 3. JAR 빌드 (테스트 제외)
+      # 3. SSH 권한 고정 (퍼미션 문제 방지용)
+      - name: Fix SSH Key Permission
+        run: |
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/id_rsa
+
+      # 4. JAR 빌드 (테스트 제외)
       - name: Build JAR
         run: |
           chmod +x ./gradlew
           ./gradlew clean build -x test
 
-      # 4. JAR 확인용 디버그
+      # 5. JAR 확인용 디버그
       - name: Check JAR exists
         run: ls -al build/libs/
 
-      # 5. SSH 접속 디버그 (선택적)
+      # 6. SSH 접속 테스트 (선택)
       - name: Debug SSH connection
         run: |
           ssh -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo SSH Connection OK"
 
-      # 6. 배포 (scp & 원격 실행)
+      # 7. 배포 (JAR 복사 + 실행)
       - name: Deploy to EC2
         run: |
           scp -o StrictHostKeyChecking=no build/libs/*.jar \
