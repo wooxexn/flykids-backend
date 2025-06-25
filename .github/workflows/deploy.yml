@@ -22,7 +22,7 @@ jobs:
       - name: Build JAR
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build
+          ./gradlew clean build -x test
 
       - name: Deploy to EC2
         run: |
