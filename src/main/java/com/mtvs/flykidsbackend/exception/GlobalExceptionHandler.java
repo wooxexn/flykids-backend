@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.http.HttpStatusCode;
@@ -105,8 +106,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * @return 500 Internal Server Error 상태와 메시지를 포함한 ResponseEntity
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleAllExceptions(Exception ex) {
-        ex.printStackTrace();  // 서버 로그에 상세 오류 기록 (운영 환경에서는 로깅 프레임워크 활용 권장)
+    public ResponseEntity<String> handleAllExceptions(Exception ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+            // Swagger 문서 요청에 대해서는 예외처리를 하지 않고 예외를 다시 던져서 정상 처리하게 함
+            throw new RuntimeException(ex);
+        }
+        ex.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("서버에서 오류가 발생했습니다. 관리자에게 문의하세요.");
     }
