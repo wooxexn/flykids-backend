@@ -50,7 +50,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 아이디 중복 체크
-        if (userRepository.existsByUsername(username)) {
+        if (userRepository.existsByUsernameAndStatus(username, User.UserStatus.ACTIVE)) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 
@@ -68,6 +68,7 @@ public class UserServiceImpl implements UserService {
                 .password(passwordEncoder.encode(password))
                 .nickname(nickname)
                 .role(Role.USER)
+                .status(User.UserStatus.ACTIVE)
                 .build();
 
         userRepository.save(user);
@@ -81,9 +82,9 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public TokenResponseDto login(LoginRequestDto requestDto) {
-        // 아이디 존재 여부 확인, 없으면 BadCredentialsException 던짐
-        User user = userRepository.findByUsername(requestDto.getUsername())
-                .orElseThrow(() -> new BadCredentialsException("존재하지 않는 아이디입니다."));
+        // 아이디 존재 여부 확인
+        User user = userRepository.findByUsernameAndStatus(requestDto.getUsername(), User.UserStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
 
         // 비밀번호 일치 확인
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
@@ -132,10 +133,19 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
     }
 
+    /**
+     * 현재 로그인한 사용자의 정보를 조회한다.
+     * - username과 상태가 ACTIVE인 사용자만 조회한다.
+     * - 해당 사용자가 없으면 IllegalArgumentException 예외를 발생시킨다.
+     *
+     * @param username 조회할 사용자 아이디
+     * @return UserInfoResponseDto 사용자 정보 DTO (username, nickname, role 포함)
+     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우 예외 발생
+     */
     @Override
     public UserInfoResponseDto getMyInfo(String username) {
         // 사용자 조회 (없으면 예외 발생)
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameAndStatus(username, User.UserStatus.ACTIVE)
                 .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 존재하지 않습니다."));
 
         // 응답 DTO 변환
@@ -171,7 +181,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 4) 다른 사용자가 이미 사용 중인지 검사
-        if (userRepository.existsByNickname(newNickname)) {
+        if (userRepository.existsByNicknameAndStatus(newNickname, User.UserStatus.ACTIVE)) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
@@ -193,8 +203,8 @@ public class UserServiceImpl implements UserService {
         // 새 비밀번호 형식 검사 (8자 이상, 영문·숫자 포함)
         validatePassword(newPassword);
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."));
+        User user = userRepository.findByUsernameAndStatus(username, User.UserStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException("새 비밀번호가 기존 비밀번호와 동일합니다.");
@@ -202,6 +212,31 @@ public class UserServiceImpl implements UserService {
 
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.updatePassword(encodedPassword);
+        userRepository.save(user);
+    }
+
+    /**
+     * 회원 탈퇴 처리
+     * - username으로 사용자를 조회하고, 상태를 INACTIVE로 변경하여 탈퇴 처리
+     * - 이미 탈퇴된 사용자인 경우 예외 발생
+     *
+     * @param username 탈퇴 처리할 사용자 아이디
+     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우
+     * @throws IllegalStateException 이미 탈퇴된 사용자일 경우
+     */
+    @Override
+    public void withdrawUser(String username) {
+        User user = userRepository.findByUsernameAndStatus(username, User.UserStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+
+        if (user.getStatus() == User.UserStatus.INACTIVE) {
+            throw new IllegalStateException("이미 탈퇴 처리된 사용자입니다.");
+        }
+
+        // 상태를 INACTIVE로 변경하고 탈퇴 시간 기록
+        user.withdraw();
+
+        // 변경된 사용자 정보 저장
         userRepository.save(user);
     }
 

@@ -51,4 +51,7 @@ public interface UserService {
 
     // 비밀번호 변경
     void updatePassword(String username, String newPassword);
+
+    // 회원 탈퇴
+    void withdrawUser(String username);
 }

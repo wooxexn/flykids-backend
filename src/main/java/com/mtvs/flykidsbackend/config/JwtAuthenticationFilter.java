@@ -1,5 +1,7 @@
 package com.mtvs.flykidsbackend.config;
 
+import com.mtvs.flykidsbackend.user.entity.User;
+import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +25,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -38,6 +41,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 3) 토큰에서 username, role 추출
             String username = jwtUtil.getUsername(token);
+
+            // username으로 사용자 조회 (없으면 null 반환)
+            User user = userRepository.findByUsername(username)
+                    .orElse(null);
+
+            // 사용자 없거나 탈퇴 상태(INACTIVE)인 경우 인증 실패 처리
+            if (user == null || user.getStatus() == User.UserStatus.INACTIVE) {
+                // 한글 깨짐 방지용 인코딩 설정
+                response.setContentType("text/plain;charset=UTF-8");
+                response.setCharacterEncoding("UTF-8");
+
+                // 인증 실패 상태 코드 설정
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+                // 메시지 쓰기
+                response.getWriter().write("탈퇴된 사용자입니다.");
+                return;
+            }
+
             String role = jwtUtil.getUserRole(token); // 예: "USER" 또는 "ADMIN"
 
             // 4) 권한 생성

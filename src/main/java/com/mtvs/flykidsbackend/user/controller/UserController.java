@@ -127,4 +127,28 @@ public class UserController {
         }
     }
 
+    /**
+     * 회원 탈퇴 API
+     * - 현재 로그인한 사용자의 계정을 비활성화(탈퇴 처리)한다.
+     * - JWT 토큰에서 username을 추출하여 탈퇴 처리 대상 사용자로 지정
+     * - 정상 처리 시 200 OK 및 성공 메시지 반환
+     * - 예외 발생 시 400 Bad Request 및 메시지 반환
+     *
+     * @param request HTTP 요청 (JWT 토큰 포함)
+     * @return 처리 결과 메시지 응답
+     */
+    @DeleteMapping("/withdraw")
+    @Operation(summary = "회원 탈퇴",
+            description = "현재 로그인한 사용자의 계정을 비활성화(탈퇴 처리)합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication"))
+    public ResponseEntity<?> withdrawUser(HttpServletRequest request) {
+        String username = jwtUtil.getUsername(jwtUtil.resolveToken(request));
+        try {
+            userService.withdrawUser(username);
+            return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 }
