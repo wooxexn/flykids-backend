@@ -1,9 +1,11 @@
 package com.mtvs.flykidsbackend.user.controller;
 
 
+import com.mtvs.flykidsbackend.config.JwtUtil;
 import com.mtvs.flykidsbackend.user.dto.LoginRequestDto;
 import com.mtvs.flykidsbackend.user.dto.SignupRequestDto;
 import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
+import com.mtvs.flykidsbackend.user.dto.UserInfoResponseDto;
 import com.mtvs.flykidsbackend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,18 +13,19 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "사용자", description = "회원가입 및 로그인 API")
+@Tag(
+        name = "사용자",
+        description = "회원가입, 로그인, 마이페이지(정보 조회/닉네임·비밀번호 수정/회원 탈퇴) API"
+)
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     /**
      * 회원가입 API
@@ -51,4 +54,27 @@ public class UserController {
         TokenResponseDto tokenResponse = userService.login(requestDto);
         return ResponseEntity.ok(tokenResponse);
     }
+
+    /**
+     * 내 정보 조회 API
+     * - Access Token에서 username을 추출하여 사용자 정보를 조회
+     *
+     * @param authHeader "Bearer {accessToken}" 형식의 Authorization 헤더
+     * @return UserInfoResponseDto
+     */
+    @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 정보를 반환합니다.")
+    @GetMapping("/me")
+    public ResponseEntity<UserInfoResponseDto> getMyInfo(
+            @RequestHeader("Authorization") String authHeader) {
+
+        // 토큰에서 username 추출
+        String token = authHeader.replace("Bearer ", "");
+        String username = jwtUtil.getUsername(token);
+
+        // 사용자 정보 조회
+        UserInfoResponseDto userInfo = userService.getMyInfo(username);
+
+        return ResponseEntity.ok(userInfo);
+    }
+
 }

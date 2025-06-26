@@ -3,6 +3,7 @@ package com.mtvs.flykidsbackend.user.service;
 import com.mtvs.flykidsbackend.user.dto.LoginRequestDto;
 import com.mtvs.flykidsbackend.user.dto.SignupRequestDto;
 import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
+import com.mtvs.flykidsbackend.user.dto.UserInfoResponseDto;
 import com.mtvs.flykidsbackend.user.entity.User;
 
 /**
@@ -36,4 +37,12 @@ public interface UserService {
      * @return 조회된 사용자 엔티티 (없을 경우 예외 발생 가능)
      */
     User findByUsername(String username);
+
+    /**
+     * 현재 로그인한 사용자의 정보를 조회한다.
+     *
+     * @param username 토큰에서 추출한 로그인 ID
+     * @return UserInfoResponseDto
+     */
+    UserInfoResponseDto getMyInfo(String username);
 }

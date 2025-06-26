@@ -32,7 +32,7 @@ public class AuthController {
             summary = "액세스 토큰 재발급",
             description = "리프레시 토큰을 이용해 새로운 액세스 토큰을 발급합니다. 토큰의 유효성 및 타입을 검증한 후 정상적인 요청이면 새 액세스 토큰을 반환합니다."
     )
-    @PostMapping("refresh-token")
+    @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshAccessToken(@RequestBody TokenRefreshRequest request) {
         String refreshToken = request.getRefreshToken();
 

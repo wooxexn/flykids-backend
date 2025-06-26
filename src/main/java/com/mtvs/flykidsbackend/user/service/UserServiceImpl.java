@@ -4,6 +4,7 @@ import com.mtvs.flykidsbackend.config.JwtUtil;
 import com.mtvs.flykidsbackend.user.dto.LoginRequestDto;
 import com.mtvs.flykidsbackend.user.dto.SignupRequestDto;
 import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
+import com.mtvs.flykidsbackend.user.dto.UserInfoResponseDto;
 import com.mtvs.flykidsbackend.user.entity.Role;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.user.repository.UserRepository;
@@ -115,6 +116,20 @@ public class UserServiceImpl implements UserService {
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    @Override
+    public UserInfoResponseDto getMyInfo(String username) {
+        // 사용자 조회 (없으면 예외 발생)
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 존재하지 않습니다."));
+
+        // 응답 DTO 변환
+        return new UserInfoResponseDto(
+                user.getUsername(),
+                user.getNickname(),
+                user.getRole().name()
+        );
     }
 
 }
