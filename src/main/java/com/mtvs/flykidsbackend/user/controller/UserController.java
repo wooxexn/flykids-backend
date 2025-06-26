@@ -8,7 +8,9 @@ import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
 import com.mtvs.flykidsbackend.user.dto.UserInfoResponseDto;
 import com.mtvs.flykidsbackend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -57,23 +59,21 @@ public class UserController {
 
     /**
      * 내 정보 조회 API
-     * - Access Token에서 username을 추출하여 사용자 정보를 조회
+     * - 요청 헤더의 Access Token에서 username을 추출하여 사용자 정보를 반환
+     * - Swagger의 Authorize 버튼으로 토큰 입력 시 정상 작동
      *
-     * @param authHeader "Bearer {accessToken}" 형식의 Authorization 헤더
-     * @return UserInfoResponseDto
+     * @param request HttpServletRequest (헤더에서 토큰 추출용)
+     * @return UserInfoResponseDto (username, nickname, role 포함)
      */
     @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 정보를 반환합니다.")
     @GetMapping("/me")
     public ResponseEntity<UserInfoResponseDto> getMyInfo(
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) HttpServletRequest request) {
 
-        // 토큰에서 username 추출
-        String token = authHeader.replace("Bearer ", "");
+        String token = jwtUtil.resolveToken(request);
         String username = jwtUtil.getUsername(token);
 
-        // 사용자 정보 조회
         UserInfoResponseDto userInfo = userService.getMyInfo(username);
-
         return ResponseEntity.ok(userInfo);
     }
 
