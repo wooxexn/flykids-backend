@@ -33,8 +33,12 @@ public class RoutePointController {
     @Operation(summary = "기준 경로 좌표 등록", description = "여러 기준 경로 좌표를 한 번에 등록합니다.")
     @PostMapping("/points")
     public ResponseEntity<String> saveRoutePoints(@RequestBody List<RoutePointRequestDto> pointList) {
-        routePointService.saveRoutePoints(pointList);
-        return ResponseEntity.ok("기준 경로가 저장되었습니다.");
+        try {
+            routePointService.saveRoutePoints(pointList);
+            return ResponseEntity.ok("기준 경로가 저장되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     /**

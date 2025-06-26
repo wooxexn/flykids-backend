@@ -43,12 +43,17 @@ public class RoutePointService {
         }
 
         List<RoutePoint> routePoints = pointList.stream()
-                .map(dto -> RoutePoint.builder()
-                        .missionId(dto.getMissionId())
-                        .x(dto.getX())
-                        .y(dto.getY())
-                        .z(dto.getZ())
-                        .build())
+                .map(dto -> {
+                    if (dto.getMissionId() == null || dto.getMissionId() <= 0) {
+                        throw new IllegalArgumentException("유효하지 않은 미션 ID가 포함되어 있습니다.");
+                    }
+                    return RoutePoint.builder()
+                            .missionId(dto.getMissionId())
+                            .x(dto.getX())
+                            .y(dto.getY())
+                            .z(dto.getZ())
+                            .build();
+                })
                 .toList();
 
         routePointRepository.saveAll(routePoints);
