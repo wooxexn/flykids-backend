@@ -9,10 +9,12 @@ import com.mtvs.flykidsbackend.user.entity.Role;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,18 @@ public class UserServiceImpl implements UserService {
         String username = requestDto.getUsername();
         String password = requestDto.getPassword();
         String nickname = requestDto.getNickname();
+
+        // 아이디 유효성 검사
+        if (username.length() < 5 || username.length() > 20) {
+            throw new IllegalArgumentException("아이디는 5자 이상 20자 이하로 입력해주세요.");
+        }
+
+        // 아이디 형식 검사 (영문자‧숫자만 허용, 특수문자 사용 불가)
+        if (!username.matches("^[a-zA-Z0-9]+$")) {
+            throw new IllegalArgumentException(
+                    "아이디는 영문자, 숫자만 가능하고 특수문자는 사용할 수 없습니다."
+            );
+        }
 
         // 아이디 중복 체크
         if (userRepository.existsByUsername(username)) {
@@ -71,9 +85,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(requestDto.getUsername())
                 .orElseThrow(() -> new BadCredentialsException("존재하지 않는 아이디입니다."));
 
-        // 비밀번호 확인, 틀리면 BadCredentialsException 던짐
+        // 비밀번호 일치 확인
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
         // 액세스 토큰 생성
@@ -130,6 +144,65 @@ public class UserServiceImpl implements UserService {
                 user.getNickname(),
                 user.getRole().name()
         );
+    }
+
+    /**
+     * 사용자 닉네임 수정
+     * - username으로 사용자를 조회하고, 전달받은 새로운 닉네임으로 업데이트
+     *
+     * @param username 사용자 아이디
+     * @param newNickname 변경할 닉네임
+     */
+    @Override
+    public void updateNickname(String username, String newNickname) {
+
+        // 1) 닉네임 길이 검증
+        if (newNickname.length() < 2 || newNickname.length() > 12) {
+            throw new IllegalArgumentException("닉네임은 2자 이상 12자 이하로 입력해주세요.");
+        }
+
+        // 2) 사용자 조회
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+
+        // 3) 기존 닉네임과 동일한지 검사
+        if (user.getNickname().equals(newNickname)) {
+            throw new IllegalArgumentException("새 닉네임이 기존 닉네임과 동일합니다.");
+        }
+
+        // 4) 다른 사용자가 이미 사용 중인지 검사
+        if (userRepository.existsByNickname(newNickname)) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+
+        // 5) 닉네임 업데이트 후 저장
+        user.updateNickname(newNickname);
+        userRepository.save(user);
+    }
+
+    /**
+     * 사용자 비밀번호 수정
+     * - username으로 사용자를 조회하고, 전달받은 새로운 비밀번호를 암호화하여 업데이트
+     *
+     * @param username 사용자 아이디
+     * @param newPassword 변경할 비밀번호 (평문)
+     */
+    @Override
+    public void updatePassword(String username, String newPassword) {
+
+        // 새 비밀번호 형식 검사 (8자 이상, 영문·숫자 포함)
+        validatePassword(newPassword);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."));
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("새 비밀번호가 기존 비밀번호와 동일합니다.");
+        }
+
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.updatePassword(encodedPassword);
+        userRepository.save(user);
     }
 
 }

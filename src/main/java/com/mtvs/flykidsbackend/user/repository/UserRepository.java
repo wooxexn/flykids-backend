@@ -15,4 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // username이 이미 존재하는지 여부 확인 (회원가입 중복 체크 시 사용 가능)
     boolean existsByUsername(String username);
+
+    //주어진 닉네임이 이미 데이터베이스에 존재하는지 여부 확인
+    boolean existsByNickname(String nickname);
 }

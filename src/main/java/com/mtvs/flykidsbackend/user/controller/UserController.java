@@ -1,14 +1,11 @@
 package com.mtvs.flykidsbackend.user.controller;
 
-
 import com.mtvs.flykidsbackend.config.JwtUtil;
-import com.mtvs.flykidsbackend.user.dto.LoginRequestDto;
-import com.mtvs.flykidsbackend.user.dto.SignupRequestDto;
-import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
-import com.mtvs.flykidsbackend.user.dto.UserInfoResponseDto;
+import com.mtvs.flykidsbackend.user.dto.*;
 import com.mtvs.flykidsbackend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -16,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.mtvs.flykidsbackend.user.dto.UpdatePasswordRequestDto;
+import com.mtvs.flykidsbackend.user.dto.UpdateNicknameRequestDto;
 
 @Tag(
         name = "사용자",
@@ -38,9 +37,13 @@ public class UserController {
             description = "사용자로부터 이메일, 비밀번호, 역할 정보를 받아 회원가입을 처리합니다."
     )
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody @Valid SignupRequestDto requestDto) {
-        userService.signup(requestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 완료되었습니다.");
+    public ResponseEntity<?> signup(@RequestBody @Valid SignupRequestDto requestDto) {
+        try {
+            userService.signup(requestDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 완료되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     /**
@@ -52,9 +55,13 @@ public class UserController {
             description = "이메일과 비밀번호를 검증한 후, access/refresh 토큰을 반환합니다."
     )
     @PostMapping("/login")
-    public ResponseEntity<TokenResponseDto> login(@RequestBody @Valid LoginRequestDto requestDto) {
-        TokenResponseDto tokenResponse = userService.login(requestDto);
-        return ResponseEntity.ok(tokenResponse);
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto requestDto) {
+        try {
+            TokenResponseDto tokenResponse = userService.login(requestDto);
+            return ResponseEntity.ok(tokenResponse);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     /**
@@ -65,7 +72,8 @@ public class UserController {
      * @param request HttpServletRequest (헤더에서 토큰 추출용)
      * @return UserInfoResponseDto (username, nickname, role 포함)
      */
-    @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 정보를 반환합니다.")
+    @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 정보를 반환합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication"))
     @GetMapping("/me")
     public ResponseEntity<UserInfoResponseDto> getMyInfo(
             @Parameter(hidden = true) HttpServletRequest request) {
@@ -75,6 +83,48 @@ public class UserController {
 
         UserInfoResponseDto userInfo = userService.getMyInfo(username);
         return ResponseEntity.ok(userInfo);
+    }
+
+    /**
+     * 닉네임 수정 API
+     * PATCH /api/users/nickname
+     */
+    @Operation(
+            summary = "닉네임 수정",
+            description = "현재 로그인한 사용자의 닉네임을 변경합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @PatchMapping("/nickname")
+    public ResponseEntity<?> updateNickname(HttpServletRequest request,
+                                            @RequestBody UpdateNicknameRequestDto dto) {
+        String username = jwtUtil.getUsername(jwtUtil.resolveToken(request));
+        try {
+            userService.updateNickname(username, dto.getNickname());
+            return ResponseEntity.ok("닉네임이 성공적으로 변경되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * 비밀번호 수정 API
+     * PATCH /api/users/password
+     */
+    @Operation(
+            summary = "비밀번호 수정",
+            description = "현재 로그인한 사용자의 비밀번호를 변경합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @PatchMapping("/password")
+    public ResponseEntity<?> updatePassword(HttpServletRequest request,
+                                            @RequestBody UpdatePasswordRequestDto dto) {
+        String username = jwtUtil.getUsername(jwtUtil.resolveToken(request));
+        try {
+            userService.updatePassword(username, dto.getNewPassword());
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
 }

@@ -40,20 +40,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = jwtUtil.getUsername(token);
             String role = jwtUtil.getUserRole(token); // 예: "USER" 또는 "ADMIN"
 
-            // 4) Spring Security 권한 객체 생성 ("ROLE_USER" 형식으로)
+            // 4) 권한 생성
             SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
             List<SimpleGrantedAuthority> authorities = List.of(authority);
 
-            // 5) 인증 객체 생성 및 세부 정보 설정
+            // 5) 인증 객체 생성
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+            // 6) 인증 정보에 요청 정보 추가
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-            // 6) SecurityContext에 인증 정보 등록
+            // 7) SecurityContext에 인증 정보 등록
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
-        // 7) 다음 필터로 진행
+        // 8) 다음 필터로 진행
         chain.doFilter(request, response);
     }
 }

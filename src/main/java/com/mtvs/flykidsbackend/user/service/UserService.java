@@ -45,4 +45,10 @@ public interface UserService {
      * @return UserInfoResponseDto
      */
     UserInfoResponseDto getMyInfo(String username);
+
+    // 닉네임 변경
+    void updateNickname(String username, String newNickname);
+
+    // 비밀번호 변경
+    void updatePassword(String username, String newPassword);
 }
