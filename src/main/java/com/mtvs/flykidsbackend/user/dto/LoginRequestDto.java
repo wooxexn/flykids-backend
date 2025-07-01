@@ -1,5 +1,6 @@
 package com.mtvs.flykidsbackend.user.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,19 +11,14 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
+@Schema(description = "로그인 요청 DTO")
 public class LoginRequestDto {
 
-    /**
-     * 사용자 아이디 (null 또는 공백 불가)
-     * 로그인 시 입력한 아이디
-     */
     @NotBlank(message = "아이디는 필수입니다.")
+    @Schema(description = "사용자 아이디", example = "test")
     private String username;
 
-    /**
-     * 사용자 비밀번호 (null 또는 공백 불가)
-     * 로그인 시 입력한 비밀번호
-     */
     @NotBlank(message = "비밀번호는 필수입니다.")
+    @Schema(description = "사용자 비밀번호", example = "test1234")
     private String password;
 }

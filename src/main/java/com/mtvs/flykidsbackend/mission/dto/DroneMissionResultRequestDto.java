@@ -1,5 +1,6 @@
 package com.mtvs.flykidsbackend.mission.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,12 +13,12 @@ import lombok.Setter;
 @Setter
 public class DroneMissionResultRequestDto {
 
-    /** 사용한 드론 ID (필수) */
+    @Schema(description = "사용한 드론 ID", example = "1", required = true)
     private Long droneId;
 
-    /** 총 비행 시간 (단위: 초) */
+    @Schema(description = "총 비행 시간 (단위: 초)", example = "42.5")
     private double totalTime;
 
-    /** 경로 이탈 횟수 */
+    @Schema(description = "경로 이탈 횟수", example = "2")
     private int deviationCount;
 }
