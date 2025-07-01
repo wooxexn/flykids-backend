@@ -112,13 +112,23 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
-        // 단일 미션 타입 점수 계산
-        int score = resultService.calculateScore(
-                dto.getMissionType(),
-                dto.getTotalTime(),
-                dto.getDeviationCount(),
-                dto.getCollisionCount()
-        );
+        boolean isTimeExceeded = dto.getTotalTime() > mission.getTimeLimit();
+
+        int score = 0;
+        boolean success = false;
+
+        if (isTimeExceeded) {
+            // 제한시간 초과 시 실패 처리 (점수 0)
+            success = false;
+        } else {
+            score = resultService.calculateScore(
+                    dto.getMissionType(),
+                    dto.getTotalTime(),
+                    dto.getDeviationCount(),
+                    dto.getCollisionCount()
+            );
+            success = resultService.isMissionSuccess(dto.getMissionType(), dto);
+        }
 
         DroneMissionResult saved = resultRepository.save(
                 DroneMissionResult.builder()
@@ -129,29 +139,33 @@ public class MissionServiceImpl implements MissionService {
                         .deviationCount(dto.getDeviationCount())
                         .collisionCount(dto.getCollisionCount())
                         .score(score)
+                        .success(success)
                         .build()
         );
 
-        // 메시지 생성
         String msg;
-        int deviation = dto.getDeviationCount();
-        int collision = dto.getCollisionCount();
-
-        if (deviation == 0 && collision == 0) {
-            msg = String.format("미션 완료! %d점입니다. 이탈과 충돌 없이 성공했습니다.", score);
-        } else if (deviation == 0) {
-            msg = String.format("미션 완료! %d점입니다. 충돌 %d회 발생했습니다.", score, collision);
-        } else if (collision == 0) {
-            msg = String.format("미션 완료! %d점입니다. 이탈 %d회 발생했습니다.", score, deviation);
+        if (isTimeExceeded) {
+            msg = "제한시간을 초과하여 미션에 실패했습니다.";
         } else {
-            msg = String.format("미션 완료! %d점입니다. 이탈 %d회, 충돌 %d회 발생했습니다.", score, deviation, collision);
+            int deviation = dto.getDeviationCount();
+            int collision = dto.getCollisionCount();
+
+            if (deviation == 0 && collision == 0) {
+                msg = String.format("미션 완료! %d점입니다. 이탈과 충돌 없이 성공했습니다.", score);
+            } else if (deviation == 0) {
+                msg = String.format("미션 완료! %d점입니다. 충돌 %d회 발생했습니다.", score, collision);
+            } else if (collision == 0) {
+                msg = String.format("미션 완료! %d점입니다. 이탈 %d회 발생했습니다.", score, deviation);
+            } else {
+                msg = String.format("미션 완료! %d점입니다. 이탈 %d회, 충돌 %d회 발생했습니다.", score, deviation, collision);
+            }
         }
 
         return MissionCompleteResponseDto.builder()
                 .score(score)
                 .duration(saved.getTotalTime())
-                .deviationCount(deviation)
-                .collisionCount(collision)
+                .deviationCount(dto.getDeviationCount())
+                .collisionCount(dto.getCollisionCount())
                 .message(msg)
                 .build();
     }

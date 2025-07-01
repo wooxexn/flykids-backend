@@ -85,4 +85,27 @@ public class DroneMissionResultService {
                 throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");
         }
     }
+
+    /**
+     * 미션 성공 여부 판단
+     * @param type 미션 타입
+     * @param dto 미션 결과 DTO
+     * @return 성공 여부 true/false
+     */
+    public boolean isMissionSuccess(MissionType type, DroneMissionResultRequestDto dto) {
+        switch(type) {
+            case COIN:
+                // 예: 코인 미션은 최소 10개 이상 수집해야 성공
+                return dto.getCollectedCoinCount() != null && dto.getCollectedCoinCount() >= 10;
+            case OBSTACLE:
+                // 예: 장애물 미션은 충돌 3회 미만이어야 성공
+                return dto.getCollisionCount() < 3;
+            case PHOTO:
+                // 예: 사진 촬영 성공해야 미션 성공
+                return dto.getPhotoCaptured() != null && dto.getPhotoCaptured();
+            default:
+                throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");
+        }
+    }
+
 }

@@ -26,6 +26,9 @@ public class MissionCompleteResponseDto {
     @Schema(description = "충돌 횟수", example = "1")
     private int collisionCount;
 
+    @Schema(description = "미션 성공 여부", example = "true")
+    private boolean success;
+
     @Schema(description = "TTS 피드백용 문장", example = "미션 완료! 90점입니다. 2회 이탈했습니다.")
     private String message;
 }

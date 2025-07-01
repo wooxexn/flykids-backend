@@ -7,20 +7,29 @@ import org.springframework.stereotype.Component;
 public class ScoreCalculator {
 
     /**
-     * 미션 유형에 따라 점수를 계산한다.
+     * 미션 유형별 점수 계산
+     * - COIN: 빠른 완료 + 이탈/충돌 최소화
+     * - OBSTACLE: 이탈 및 충돌 감점이 큼
+     * - PHOTO: 점수 개념 없음, 0점 처리
      *
-     * @param type 미션 유형 (COIN / OBSTACLE / PHOTO)
-     * @param totalTime 총 소요 시간 (초)
-     * @param deviationCount 경로 이탈 횟수
-     * @param coinCount 코인 미션일 경우 획득한 코인 개수
-     * @return 계산된 점수 (정수)
+     * @param type            미션 타입 (COIN / OBSTACLE / PHOTO)
+     * @param totalTime       총 소요 시간 (초 단위)
+     * @param deviationCount  경로 이탈 횟수
+     * @param collisionCount  충돌 횟수
+     * @return 계산된 점수 (0 ~ 100)
      */
-    public int calculateScore(MissionType type, double totalTime, int deviationCount, int coinCount) {
-        return switch (type) {
-            case COIN -> calculateCoinScore(totalTime, coinCount);
-            case OBSTACLE -> calculateObstacleScore(deviationCount);
-            case PHOTO -> calculatePhotoScore(deviationCount);
-        };
+    public int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount) {
+        switch (type) {
+            case COIN:
+                return (int) Math.max(100 - (totalTime * 2 + deviationCount * 5 + collisionCount * 10), 0);
+            case OBSTACLE:
+                return (int) Math.max(100 - (deviationCount * 10 + collisionCount * 10 + totalTime), 0);
+            case PHOTO:
+                // 사진 미션은 점수 개념 없으므로 0점 반환
+                return 0;
+            default:
+                throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");
+        }
     }
 
     /**
@@ -43,12 +52,4 @@ public class ScoreCalculator {
         return Math.max(0, 100 - (deviationCount * 5));
     }
 
-    /**
-     * 사진 찍기 미션 점수 계산
-     * - 이탈 없음: 100점
-     * - 이탈 있음: 80점
-     */
-    private int calculatePhotoScore(int deviationCount) {
-        return deviationCount == 0 ? 100 : 80;
-    }
 }
