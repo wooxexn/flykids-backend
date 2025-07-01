@@ -31,27 +31,34 @@ public class DroneMissionResultService {
      * @return 저장된 DroneMissionResult 객체
      */
     public DroneMissionResult saveResult(Long userId, Long missionId, DroneMissionResultRequestDto dto) {
-        // 1. 미션 존재 여부 확인
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new NoSuchElementException("해당 미션을 찾을 수 없습니다."));
 
-        // 2. 점수 계산 (미션 유형, 시간, 이탈 횟수, 충돌 횟수 기반)
-        int score = calculateScore(
-                mission.getType(),
-                dto.getTotalTime(),
-                dto.getDeviationCount(),
-                dto.getCollisionCount()
-        );
+        int totalScore = 0;
+        int totalDeviation = 0;
+        int totalCollision = 0;
 
-        // 3. 결과 엔티티 생성 및 저장
+        for (DroneMissionResultRequestDto.MissionItemResult itemResult : dto.getItemResults()) {
+            totalScore += calculateScore(
+                    itemResult.getType(),
+                    itemResult.getItemTime(),
+                    itemResult.getDeviationCount(),
+                    itemResult.getCollisionCount()
+            );
+            totalDeviation += itemResult.getDeviationCount();
+            totalCollision += itemResult.getCollisionCount();
+        }
+
+        totalScore = Math.min(totalScore, 100);
+
         DroneMissionResult result = DroneMissionResult.builder()
                 .userId(userId)
                 .missionId(missionId)
                 .droneId(dto.getDroneId())
                 .totalTime(dto.getTotalTime())
-                .deviationCount(dto.getDeviationCount())
-                .collisionCount(dto.getCollisionCount())
-                .score(score)
+                .deviationCount(totalDeviation)
+                .collisionCount(totalCollision)
+                .score(totalScore)
                 .build();
 
         return resultRepository.save(result);
