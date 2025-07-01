@@ -34,31 +34,22 @@ public class DroneMissionResultService {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new NoSuchElementException("해당 미션을 찾을 수 없습니다."));
 
-        int totalScore = 0;
-        int totalDeviation = 0;
-        int totalCollision = 0;
-
-        for (DroneMissionResultRequestDto.MissionItemResult itemResult : dto.getItemResults()) {
-            totalScore += calculateScore(
-                    itemResult.getType(),
-                    itemResult.getItemTime(),
-                    itemResult.getDeviationCount(),
-                    itemResult.getCollisionCount()
-            );
-            totalDeviation += itemResult.getDeviationCount();
-            totalCollision += itemResult.getCollisionCount();
-        }
-
-        totalScore = Math.min(totalScore, 100);
+        // 단일 미션 타입에 대한 점수 계산
+        int score = calculateScore(
+                mission.getType(),
+                dto.getTotalTime(),
+                dto.getDeviationCount(),
+                dto.getCollisionCount()
+        );
 
         DroneMissionResult result = DroneMissionResult.builder()
                 .userId(userId)
                 .missionId(missionId)
                 .droneId(dto.getDroneId())
                 .totalTime(dto.getTotalTime())
-                .deviationCount(totalDeviation)
-                .collisionCount(totalCollision)
-                .score(totalScore)
+                .deviationCount(dto.getDeviationCount())
+                .collisionCount(dto.getCollisionCount())
+                .score(score)
                 .build();
 
         return resultRepository.save(result);

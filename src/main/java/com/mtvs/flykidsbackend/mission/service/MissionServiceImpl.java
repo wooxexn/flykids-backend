@@ -6,7 +6,6 @@ import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
-import com.mtvs.flykidsbackend.mission.entity.MissionItem;
 import com.mtvs.flykidsbackend.mission.repository.DroneMissionResultRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,17 +38,8 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = Mission.builder()
                 .title(requestDto.getTitle())
                 .timeLimit(requestDto.getTimeLimit())
+                .type(requestDto.getType())
                 .build();
-
-        // MissionItem 리스트 생성
-        List<MissionItem> items = requestDto.getItems().stream()
-                .map(itemDto -> MissionItem.builder()
-                        .type(itemDto.getType())
-                        .mission(mission)  // 양방향 연관관계 설정
-                        .build())
-                .collect(Collectors.toList());
-
-        mission.setItems(items);
 
         Mission saved = missionRepository.save(mission);
         return MissionResponseDto.from(saved);
@@ -69,23 +59,11 @@ public class MissionServiceImpl implements MissionService {
 
         mission.setTitle(requestDto.getTitle());
         mission.setTimeLimit(requestDto.getTimeLimit());
-
-        // 기존 items 삭제 후 새로운 아이템 리스트 재설정
-        mission.getItems().clear();
-
-        List<MissionItem> items = requestDto.getItems().stream()
-                .map(itemDto -> MissionItem.builder()
-                        .type(itemDto.getType())
-                        .mission(mission)
-                        .build())
-                .collect(Collectors.toList());
-
-        mission.setItems(items);
+        mission.setType(requestDto.getType());
 
         Mission updated = missionRepository.save(mission);
         return MissionResponseDto.from(updated);
     }
-
     /**
      * 미션 삭제
      * @param id 삭제할 미션 ID
@@ -131,26 +109,16 @@ public class MissionServiceImpl implements MissionService {
     @Transactional
     @Override
     public MissionCompleteResponseDto completeMission(Long userId, Long missionId, DroneMissionResultRequestDto dto) {
-
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
-        int totalScore = 0;
-        int totalDeviation = 0;
-        int totalCollision = 0;
-
-        for (DroneMissionResultRequestDto.MissionItemResult itemResult : dto.getItemResults()) {
-            totalScore += resultService.calculateScore(
-                    itemResult.getType(),
-                    itemResult.getItemTime(),
-                    itemResult.getDeviationCount(),
-                    itemResult.getCollisionCount()
-            );
-            totalDeviation += itemResult.getDeviationCount();
-            totalCollision += itemResult.getCollisionCount();
-        }
-
-        totalScore = Math.min(totalScore, 100);
+        // 단일 미션 타입 점수 계산
+        int score = resultService.calculateScore(
+                dto.getMissionType(),
+                dto.getTotalTime(),
+                dto.getDeviationCount(),
+                dto.getCollisionCount()
+        );
 
         DroneMissionResult saved = resultRepository.save(
                 DroneMissionResult.builder()
@@ -158,29 +126,32 @@ public class MissionServiceImpl implements MissionService {
                         .missionId(missionId)
                         .droneId(dto.getDroneId())
                         .totalTime(dto.getTotalTime())
-                        .deviationCount(totalDeviation)
-                        .collisionCount(totalCollision)
-                        .score(totalScore)
+                        .deviationCount(dto.getDeviationCount())
+                        .collisionCount(dto.getCollisionCount())
+                        .score(score)
                         .build()
         );
 
         // 메시지 생성
         String msg;
-        if (totalDeviation == 0 && totalCollision == 0) {
-            msg = String.format("미션 완료! %d점입니다. 이탈과 충돌 없이 성공했습니다.", totalScore);
-        } else if (totalDeviation == 0) {
-            msg = String.format("미션 완료! %d점입니다. 충돌 %d회 발생했습니다.", totalScore, totalCollision);
-        } else if (totalCollision == 0) {
-            msg = String.format("미션 완료! %d점입니다. 이탈 %d회 발생했습니다.", totalScore, totalDeviation);
+        int deviation = dto.getDeviationCount();
+        int collision = dto.getCollisionCount();
+
+        if (deviation == 0 && collision == 0) {
+            msg = String.format("미션 완료! %d점입니다. 이탈과 충돌 없이 성공했습니다.", score);
+        } else if (deviation == 0) {
+            msg = String.format("미션 완료! %d점입니다. 충돌 %d회 발생했습니다.", score, collision);
+        } else if (collision == 0) {
+            msg = String.format("미션 완료! %d점입니다. 이탈 %d회 발생했습니다.", score, deviation);
         } else {
-            msg = String.format("미션 완료! %d점입니다. 이탈 %d회, 충돌 %d회 발생했습니다.", totalScore, totalDeviation, totalCollision);
+            msg = String.format("미션 완료! %d점입니다. 이탈 %d회, 충돌 %d회 발생했습니다.", score, deviation, collision);
         }
 
         return MissionCompleteResponseDto.builder()
-                .score(totalScore)
+                .score(score)
                 .duration(saved.getTotalTime())
-                .deviationCount(totalDeviation)
-                .collisionCount(totalCollision)
+                .deviationCount(deviation)
+                .collisionCount(collision)
                 .message(msg)
                 .build();
     }
