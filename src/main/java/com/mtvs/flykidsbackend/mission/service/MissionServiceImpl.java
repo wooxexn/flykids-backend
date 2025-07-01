@@ -125,9 +125,10 @@ public class MissionServiceImpl implements MissionService {
                     dto.getMissionType(),
                     dto.getTotalTime(),
                     dto.getDeviationCount(),
-                    dto.getCollisionCount()
+                    dto.getCollisionCount(),
+                    dto.getCollectedCoinCount() != null ? dto.getCollectedCoinCount() : 0
             );
-            success = resultService.isMissionSuccess(dto.getMissionType(), dto);
+            success = resultService.isMissionSuccess(dto.getMissionType(), dto, mission);
         }
 
         DroneMissionResult saved = resultRepository.save(
@@ -144,8 +145,12 @@ public class MissionServiceImpl implements MissionService {
         );
 
         String msg;
-        if (isTimeExceeded) {
-            msg = "제한시간을 초과하여 미션에 실패했습니다.";
+        if (!success) {
+            if (isTimeExceeded) {
+                msg = "제한시간을 초과하여 미션에 실패했습니다.";
+            } else {
+                msg = "미션 조건을 만족하지 못해 실패했습니다.";
+            }
         } else {
             int deviation = dto.getDeviationCount();
             int collision = dto.getCollisionCount();
@@ -166,7 +171,9 @@ public class MissionServiceImpl implements MissionService {
                 .duration(saved.getTotalTime())
                 .deviationCount(dto.getDeviationCount())
                 .collisionCount(dto.getCollisionCount())
+                .success(success)
                 .message(msg)
                 .build();
     }
+
 }

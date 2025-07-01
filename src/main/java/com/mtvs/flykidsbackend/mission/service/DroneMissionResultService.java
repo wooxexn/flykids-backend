@@ -39,7 +39,8 @@ public class DroneMissionResultService {
                 mission.getType(),
                 dto.getTotalTime(),
                 dto.getDeviationCount(),
-                dto.getCollisionCount()
+                dto.getCollisionCount(),
+                dto.getCollectedCoinCount()
         );
 
         DroneMissionResult result = DroneMissionResult.builder()
@@ -67,19 +68,19 @@ public class DroneMissionResultService {
      * @param collisionCount  충돌 횟수
      * @return 계산된 점수 (0 ~ 100)
      */
-    public int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount) {
+    public int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount, Integer collectedCoinCount) {
         switch (type) {
             case COIN:
-                // 코인 미션: 시간 + 이탈 + 충돌 모두 감점 요소
-                return (int) Math.max(100 - (totalTime * 2 + deviationCount * 5 + collisionCount * 10), 0);
+                int coinCount = collectedCoinCount != null ? collectedCoinCount : 0;
+                int baseScore = coinCount * 10;
+                int penalty = (int) (totalTime * 0.5);
+                return Math.max(0, baseScore - penalty);
 
             case OBSTACLE:
-                // 장애물 미션: 이탈과 충돌 감점이 큼
                 return (int) Math.max(100 - (deviationCount * 10 + collisionCount * 10 + totalTime), 0);
 
             case PHOTO:
-                // 사진 미션: 시간 중심, 충돌은 반영하지 않음
-                return (int) Math.max(100 - totalTime * 3, 0);
+                return 0;
 
             default:
                 throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");
@@ -92,16 +93,14 @@ public class DroneMissionResultService {
      * @param dto 미션 결과 DTO
      * @return 성공 여부 true/false
      */
-    public boolean isMissionSuccess(MissionType type, DroneMissionResultRequestDto dto) {
+    public boolean isMissionSuccess(MissionType type, DroneMissionResultRequestDto dto, Mission mission) {
         switch(type) {
             case COIN:
-                // 예: 코인 미션은 최소 10개 이상 수집해야 성공
-                return dto.getCollectedCoinCount() != null && dto.getCollectedCoinCount() >= 10;
+                return dto.getCollectedCoinCount() != null
+                        && dto.getCollectedCoinCount() == mission.getTotalCoinCount();
             case OBSTACLE:
-                // 예: 장애물 미션은 충돌 3회 미만이어야 성공
                 return dto.getCollisionCount() < 3;
             case PHOTO:
-                // 예: 사진 촬영 성공해야 미션 성공
                 return dto.getPhotoCaptured() != null && dto.getPhotoCaptured();
             default:
                 throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");

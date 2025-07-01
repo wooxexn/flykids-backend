@@ -18,14 +18,13 @@ public class ScoreCalculator {
      * @param collisionCount  충돌 횟수
      * @return 계산된 점수 (0 ~ 100)
      */
-    public int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount) {
+    public int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount, int collectedCoinCount) {
         switch (type) {
             case COIN:
-                return (int) Math.max(100 - (totalTime * 2 + deviationCount * 5 + collisionCount * 10), 0);
+                return calculateCoinScore(totalTime, collectedCoinCount);
             case OBSTACLE:
-                return (int) Math.max(100 - (deviationCount * 10 + collisionCount * 10 + totalTime), 0);
+                return calculateObstacleScore(deviationCount);
             case PHOTO:
-                // 사진 미션은 점수 개념 없으므로 0점 반환
                 return 0;
             default:
                 throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");

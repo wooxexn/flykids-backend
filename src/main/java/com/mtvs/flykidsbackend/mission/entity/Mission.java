@@ -35,4 +35,12 @@ public class Mission {
     @Column(nullable = false)
     private MissionType type;
 
+    /**
+     * 미션에서 요구하는 총 코인 개수
+     * - 코인 먹기 미션에서 플레이어가 모두 수집해야 하는 코인 총량
+     * - 성공 여부 판단 시 기준으로 사용됨
+     */
+    @Column(nullable = false)
+    private int totalCoinCount;
+
 }
