@@ -1,5 +1,7 @@
 package com.mtvs.flykidsbackend.mission.service;
 
+import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
+import com.mtvs.flykidsbackend.mission.dto.MissionCompleteResponseDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
 
@@ -25,4 +27,10 @@ public interface MissionService {
 
     /** 전체 미션 목록 조회 */
     List<MissionResponseDto> getAllMissions();
+
+    /** 미션 완료 처리(결과 저장 + TTS 응답) */
+    MissionCompleteResponseDto completeMission(
+            Long userId,
+            Long missionId,
+            DroneMissionResultRequestDto requestDto);
 }

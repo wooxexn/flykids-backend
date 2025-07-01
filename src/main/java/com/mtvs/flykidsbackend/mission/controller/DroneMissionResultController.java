@@ -1,8 +1,8 @@
 package com.mtvs.flykidsbackend.mission.controller;
 
 import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
-import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
-import com.mtvs.flykidsbackend.mission.service.DroneMissionResultService;
+import com.mtvs.flykidsbackend.mission.dto.MissionCompleteResponseDto;
+import com.mtvs.flykidsbackend.mission.service.MissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 미션 결과 관련 API 컨트롤러
- * - 미션 완료 후 점수 저장 API 제공
+ * - 미션 완료 후 점수 계산 및 결과 저장, TTS 응답 포함
  */
 @RestController
 @RequestMapping("/api/missions")
@@ -20,33 +20,34 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "DroneMissionResult", description = "드론 미션 결과 API")
 public class DroneMissionResultController {
 
-    private final DroneMissionResultService resultService;
+    private final MissionService missionService;
 
     /**
-     * 미션 수행 결과 저장 API
+     * 미션 수행 결과 저장 및 피드백 응답 API
      *
      * @param missionId   수행한 미션 ID
-     * @param requestDto  클라이언트로부터 전달받은 결과 정보
-     * @param request     HTTP 요청 객체 (JWT에서 userId 추출용)
-     * @return 저장된 결과 또는 실패 메시지
+     * @param requestDto  결과 정보 (총 시간, 이탈 횟수, 드론 ID)
+     * @param request     요청 객체 (userId 추출용)
+     * @return 점수 + 메시지를 포함한 응답
      */
     @PostMapping("/{missionId}/complete")
-    @Operation(summary = "미션 수행 결과 저장", description = "점수, 비행 시간, 이탈 횟수 등 미션 수행 결과를 저장한다.")
-    public ResponseEntity<?> completeMission(
+    @Operation(summary = "미션 완료 처리", description = "결과 저장 후 점수 및 TTS 피드백 메시지를 반환한다.")
+    public ResponseEntity<MissionCompleteResponseDto> completeMission(
             @PathVariable Long missionId,
             @RequestBody DroneMissionResultRequestDto requestDto,
             HttpServletRequest request
     ) {
         try {
-            // JWT 토큰에서 인증된 사용자 ID 추출 (Filter 등에서 세팅된 값)
             Long userId = (Long) request.getAttribute("userId");
 
-            DroneMissionResult result = resultService.saveResult(userId, missionId, requestDto);
-            return ResponseEntity.ok(result);
+            MissionCompleteResponseDto response =
+                    missionService.completeMission(userId, missionId, requestDto);
+
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("미션 결과 저장 중 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

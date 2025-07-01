@@ -1,11 +1,16 @@
 package com.mtvs.flykidsbackend.mission.service;
 
+import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
+import com.mtvs.flykidsbackend.mission.dto.MissionCompleteResponseDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
+import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
+import com.mtvs.flykidsbackend.mission.repository.DroneMissionResultRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +25,7 @@ import java.util.stream.Collectors;
 public class MissionServiceImpl implements MissionService {
 
     private final MissionRepository missionRepository;
+    private final DroneMissionResultRepository resultRepository;
 
     /**
      * 미션 등록
@@ -98,4 +104,50 @@ public class MissionServiceImpl implements MissionService {
                 .map(MissionResponseDto::from)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 미션 완료 처리
+     * - 점수 계산 및 결과 저장 후 피드백 문장 응답
+     */
+    @Transactional
+    @Override
+    public MissionCompleteResponseDto completeMission(Long userId,
+                                                      Long missionId,
+                                                      DroneMissionResultRequestDto dto) {
+
+        // 1. 미션 존재 확인
+        missionRepository.findById(missionId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
+
+        // 2. 점수 계산
+        final int MAX = 100, DEDUCT = 5;
+        int deviation = dto.getDeviationCount();
+        int score = Math.max(0, MAX - deviation * DEDUCT);
+
+        // 3. 결과 저장
+        DroneMissionResult saved = resultRepository.save(
+                DroneMissionResult.builder()
+                        .userId(userId)
+                        .missionId(missionId)
+                        .droneId(dto.getDroneId())
+                        .totalTime(dto.getTotalTime())
+                        .deviationCount(deviation)
+                        .score(score)
+                        .build()
+        );
+
+        // 4. 메시지 생성
+        String msg = deviation == 0
+                ? String.format("미션 완료! %d점입니다. 이탈 없이 성공했습니다.", score)
+                : String.format("미션 완료! %d점입니다. %d회 이탈했습니다.", score, deviation);
+
+        // 5. 응답 DTO
+        return MissionCompleteResponseDto.builder()
+                .score(score)
+                .duration(saved.getTotalTime())
+                .deviationCount(deviation)
+                .message(msg)
+                .build();
+    }
+
 }
