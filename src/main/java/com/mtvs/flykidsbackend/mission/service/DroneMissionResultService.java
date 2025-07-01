@@ -69,7 +69,7 @@ public class DroneMissionResultService {
      * @param collisionCount  충돌 횟수
      * @return 계산된 점수 (0 ~ 100)
      */
-    private int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount) {
+    public int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount) {
         switch (type) {
             case COIN:
                 // 코인 미션: 시간 + 이탈 + 충돌 모두 감점 요소

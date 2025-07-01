@@ -26,6 +26,7 @@ public class MissionServiceImpl implements MissionService {
 
     private final MissionRepository missionRepository;
     private final DroneMissionResultRepository resultRepository;
+    private final DroneMissionResultService resultService;
 
     /**
      * 미션 등록
@@ -116,19 +117,19 @@ public class MissionServiceImpl implements MissionService {
                                                       DroneMissionResultRequestDto dto) {
 
         // 1. 미션 존재 확인
-        missionRepository.findById(missionId)
+        Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
         // 2. 점수 계산
-        final int MAX_SCORE = 100;
-        final int DEVIATION_PENALTY = 5;
-        final int COLLISION_PENALTY = 10;
-
         int deviation = dto.getDeviationCount();
         int collision = dto.getCollisionCount();
 
-        int totalPenalty = (deviation * DEVIATION_PENALTY) + (collision * COLLISION_PENALTY);
-        int score = Math.max(0, MAX_SCORE - totalPenalty);
+        int score = resultService.calculateScore(
+                mission.getType(),
+                dto.getTotalTime(),
+                deviation,
+                collision
+        );
 
         // 3. 결과 저장
         DroneMissionResult saved = resultRepository.save(
