@@ -27,7 +27,7 @@ public class DroneMissionResultService {
      *
      * @param userId     유저 ID (JWT에서 추출)
      * @param missionId  미션 ID
-     * @param dto        요청 DTO (시간, 이탈 횟수 등)
+     * @param dto        요청 DTO (시간, 이탈 횟수, 충돌 횟수 포함)
      * @return 저장된 DroneMissionResult 객체
      */
     public DroneMissionResult saveResult(Long userId, Long missionId, DroneMissionResultRequestDto dto) {
@@ -35,8 +35,13 @@ public class DroneMissionResultService {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new NoSuchElementException("해당 미션을 찾을 수 없습니다."));
 
-        // 2. 점수 계산 (미션 유형별 방식 분기)
-        int score = calculateScore(mission.getType(), dto.getTotalTime(), dto.getDeviationCount());
+        // 2. 점수 계산 (미션 유형, 시간, 이탈 횟수, 충돌 횟수 기반)
+        int score = calculateScore(
+                mission.getType(),
+                dto.getTotalTime(),
+                dto.getDeviationCount(),
+                dto.getCollisionCount()
+        );
 
         // 3. 결과 엔티티 생성 및 저장
         DroneMissionResult result = DroneMissionResult.builder()
@@ -45,6 +50,7 @@ public class DroneMissionResultService {
                 .droneId(dto.getDroneId())
                 .totalTime(dto.getTotalTime())
                 .deviationCount(dto.getDeviationCount())
+                .collisionCount(dto.getCollisionCount())
                 .score(score)
                 .build();
 
@@ -52,25 +58,29 @@ public class DroneMissionResultService {
     }
 
     /**
-     * 점수 계산 로직
+     * 미션 유형별 점수 계산
+     * - COIN: 빠른 완료 + 이탈/충돌 최소화
+     * - OBSTACLE: 이탈 및 충돌 감점이 큼
+     * - PHOTO: 시간만 고려
      *
      * @param type            미션 타입 (COIN / OBSTACLE / PHOTO)
-     * @param totalTime       총 비행 시간
-     * @param deviationCount  이탈 횟수
-     * @return 계산된 점수 (0~100)
+     * @param totalTime       총 소요 시간 (초 단위)
+     * @param deviationCount  경로 이탈 횟수
+     * @param collisionCount  충돌 횟수
+     * @return 계산된 점수 (0 ~ 100)
      */
-    private int calculateScore(MissionType type, double totalTime, int deviationCount) {
+    private int calculateScore(MissionType type, double totalTime, int deviationCount, int collisionCount) {
         switch (type) {
             case COIN:
-                // 코인 먹기: 빠르게 완료 + 이탈 적으면 높은 점수
-                return (int) Math.max(100 - (totalTime * 2 + deviationCount * 5), 0);
+                // 코인 미션: 시간 + 이탈 + 충돌 모두 감점 요소
+                return (int) Math.max(100 - (totalTime * 2 + deviationCount * 5 + collisionCount * 10), 0);
 
             case OBSTACLE:
-                // 장애물 피하기: 이탈이 적은 것이 중요
-                return (int) Math.max(100 - (deviationCount * 10 + totalTime), 0);
+                // 장애물 미션: 이탈과 충돌 감점이 큼
+                return (int) Math.max(100 - (deviationCount * 10 + collisionCount * 10 + totalTime), 0);
 
             case PHOTO:
-                // 사진 미션: 시간 위주
+                // 사진 미션: 시간 중심, 충돌은 반영하지 않음
                 return (int) Math.max(100 - totalTime * 3, 0);
 
             default:
