@@ -120,9 +120,15 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
         // 2. 점수 계산
-        final int MAX = 100, DEDUCT = 5;
+        final int MAX_SCORE = 100;
+        final int DEVIATION_PENALTY = 5;
+        final int COLLISION_PENALTY = 10;
+
         int deviation = dto.getDeviationCount();
-        int score = Math.max(0, MAX - deviation * DEDUCT);
+        int collision = dto.getCollisionCount();
+
+        int totalPenalty = (deviation * DEVIATION_PENALTY) + (collision * COLLISION_PENALTY);
+        int score = Math.max(0, MAX_SCORE - totalPenalty);
 
         // 3. 결과 저장
         DroneMissionResult saved = resultRepository.save(
@@ -132,14 +138,23 @@ public class MissionServiceImpl implements MissionService {
                         .droneId(dto.getDroneId())
                         .totalTime(dto.getTotalTime())
                         .deviationCount(deviation)
+                        .collisionCount(dto.getCollisionCount())
                         .score(score)
                         .build()
         );
 
         // 4. 메시지 생성
-        String msg = deviation == 0
-                ? String.format("미션 완료! %d점입니다. 이탈 없이 성공했습니다.", score)
-                : String.format("미션 완료! %d점입니다. %d회 이탈했습니다.", score, deviation);
+        String msg;
+
+        if (deviation == 0 && collision == 0) {
+            msg = String.format("미션 완료! %d점입니다. 이탈과 충돌 없이 성공했습니다.", score);
+        } else if (deviation == 0) {
+            msg = String.format("미션 완료! %d점입니다. 충돌 %d회 발생했습니다.", score, collision);
+        } else if (collision == 0) {
+            msg = String.format("미션 완료! %d점입니다. 이탈 %d회 발생했습니다.", score, deviation);
+        } else {
+            msg = String.format("미션 완료! %d점입니다. 이탈 %d회, 충돌 %d회 발생했습니다.", score, deviation, collision);
+        }
 
         // 5. 응답 DTO
         return MissionCompleteResponseDto.builder()

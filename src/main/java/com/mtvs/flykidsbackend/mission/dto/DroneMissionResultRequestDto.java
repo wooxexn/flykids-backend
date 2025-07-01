@@ -21,4 +21,7 @@ public class DroneMissionResultRequestDto {
 
     @Schema(description = "경로 이탈 횟수", example = "2")
     private int deviationCount;
+
+    @Schema(description = "장애물 충돌 횟수", example = "1")
+    private int collisionCount;
 }

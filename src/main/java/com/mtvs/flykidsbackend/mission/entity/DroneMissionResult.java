@@ -39,6 +39,9 @@ public class DroneMissionResult {
     /** 경로 이탈 횟수 */
     private int deviationCount;
 
+    /** 장애물 충돌 횟수 */
+    private int collisionCount;
+
     /** 최종 점수 (0~100 범위 예상) */
     private int score;
 
