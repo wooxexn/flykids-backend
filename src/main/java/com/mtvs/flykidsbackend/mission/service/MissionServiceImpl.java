@@ -6,7 +6,9 @@ import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
+import com.mtvs.flykidsbackend.mission.entity.MissionItem;
 import com.mtvs.flykidsbackend.mission.repository.DroneMissionResultRepository;
+import com.mtvs.flykidsbackend.mission.repository.MissionItemRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,50 +27,73 @@ import java.util.stream.Collectors;
 public class MissionServiceImpl implements MissionService {
 
     private final MissionRepository missionRepository;
+    private final MissionItemRepository missionItemRepository; // 추가
     private final DroneMissionResultRepository resultRepository;
     private final DroneMissionResultService resultService;
 
-    /**
-     * 미션 등록
-     * @param requestDto 미션 등록 요청 DTO
-     * @return 등록된 미션 정보 반환
-     */
     @Override
+    @Transactional
     public MissionResponseDto createMission(MissionRequestDto requestDto) {
+        // Mission 엔티티 생성
         Mission mission = Mission.builder()
                 .title(requestDto.getTitle())
-                .timeLimit(requestDto.getTimeLimit())
-                .type(requestDto.getType())
                 .build();
 
-        Mission saved = missionRepository.save(mission);
-        return MissionResponseDto.from(saved);
+        Mission savedMission = missionRepository.save(mission);
+
+        // MissionItem 리스트 생성 및 저장
+        List<MissionItem> missionItems = requestDto.getItems().stream()
+                .map(itemDto -> {
+                    MissionItem missionItem = MissionItem.builder()
+                            .mission(savedMission)
+                            .title(itemDto.getTitle())
+                            .timeLimit(itemDto.getTimeLimit())
+                            .type(itemDto.getType())
+                            .totalCoinCount(itemDto.getTotalCoinCount())
+                            .build();
+                    return missionItemRepository.save(missionItem);
+                })
+                .collect(Collectors.toList());
+
+        savedMission.setMissionItems(missionItems);
+
+        return MissionResponseDto.from(savedMission);
     }
 
-    /**
-     * 미션 수정
-     * @param id 수정 대상 미션 ID
-     * @param requestDto 수정할 내용 DTO
-     * @return 수정된 미션 정보 반환
-     * @throws IllegalArgumentException 존재하지 않는 미션 ID일 경우 예외 발생
-     */
     @Override
+    @Transactional
     public MissionResponseDto updateMission(Long id, MissionRequestDto requestDto) {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
         mission.setTitle(requestDto.getTitle());
-        mission.setTimeLimit(requestDto.getTimeLimit());
-        mission.setType(requestDto.getType());
+
+        // 기존 미션 아이템 모두 삭제 (orphanRemoval = true 설정 시 자동 가능)
+        mission.getMissionItems().clear();
+        missionItemRepository.deleteAllByMissionId(mission.getId());
+
+        // 새로운 미션 아이템 저장 및 설정
+        List<MissionItem> updatedItems = requestDto.getItems().stream()
+                .map(itemDto -> {
+                    MissionItem missionItem = MissionItem.builder()
+                            .mission(mission)
+                            .title(itemDto.getTitle())
+                            .timeLimit(itemDto.getTimeLimit())
+                            .type(itemDto.getType())
+                            .totalCoinCount(itemDto.getTotalCoinCount())
+                            .build();
+                    return missionItemRepository.save(missionItem);
+                })
+                .collect(Collectors.toList());
+
+        mission.setMissionItems(updatedItems);
 
         Mission updated = missionRepository.save(mission);
         return MissionResponseDto.from(updated);
     }
-    /**
-     * 미션 삭제
-     * @param id 삭제할 미션 ID
-     * @throws IllegalArgumentException 존재하지 않는 미션 ID일 경우 예외 발생
-     */
+
+    // 이하 기존 메서드 유지
+
     @Override
     public void deleteMission(Long id) {
         if (!missionRepository.existsById(id)) {
@@ -77,12 +102,6 @@ public class MissionServiceImpl implements MissionService {
         missionRepository.deleteById(id);
     }
 
-    /**
-     * 단일 미션 조회
-     * @param id 조회할 미션 ID
-     * @return 조회된 미션 정보
-     * @throws IllegalArgumentException 존재하지 않는 미션 ID일 경우 예외 발생
-     */
     @Override
     public MissionResponseDto getMission(Long id) {
         Mission mission = missionRepository.findById(id)
@@ -90,10 +109,6 @@ public class MissionServiceImpl implements MissionService {
         return MissionResponseDto.from(mission);
     }
 
-    /**
-     * 전체 미션 목록 조회
-     * @return 전체 미션 리스트
-     */
     @Override
     public List<MissionResponseDto> getAllMissions() {
         return missionRepository.findAll()
@@ -102,78 +117,70 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 미션 완료 처리
-     * - 점수 계산 및 결과 저장 후 피드백 문장 응답
-     */
     @Transactional
     @Override
     public MissionCompleteResponseDto completeMission(Long userId, Long missionId, DroneMissionResultRequestDto dto) {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
-        boolean isTimeExceeded = dto.getTotalTime() > mission.getTimeLimit();
+        List<DroneMissionResultRequestDto.MissionItemResult> itemResults = dto.getItemResults();
+        if (itemResults == null || itemResults.isEmpty()) {
+            throw new IllegalArgumentException("미션 아이템 결과가 없습니다.");
+        }
 
-        int score = 0;
-        boolean success = false;
+        int totalScore = 0;
+        boolean allSuccess = true;
+        StringBuilder msgBuilder = new StringBuilder();
 
-        if (isTimeExceeded) {
-            // 제한시간 초과 시 실패 처리 (점수 0)
-            success = false;
-        } else {
-            score = resultService.calculateScore(
-                    dto.getMissionType(),
-                    dto.getTotalTime(),
-                    dto.getDeviationCount(),
-                    dto.getCollisionCount(),
-                    dto.getCollectedCoinCount() != null ? dto.getCollectedCoinCount() : 0
+        for (var itemResult : itemResults) {
+            // missionItem 변수 추가 - mission에서 해당 타입 미션 아이템 찾기
+            MissionItem missionItem = mission.getMissionItems().stream()
+                    .filter(mi -> mi.getType() == itemResult.getMissionType())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("해당 미션 아이템이 존재하지 않습니다."));
+
+            int score = resultService.calculateScore(
+                    itemResult.getMissionType(),
+                    itemResult.getTotalTime(),
+                    itemResult.getDeviationCount(),
+                    itemResult.getCollisionCount(),
+                    itemResult.getCollectedCoinCount() != null ? itemResult.getCollectedCoinCount() : 0
             );
-            success = resultService.isMissionSuccess(dto.getMissionType(), dto, mission);
+
+            // mission → missionItem 으로 바꿈
+            boolean success = resultService.isMissionSuccess(itemResult.getMissionType(), itemResult, missionItem);
+
+            totalScore += score;
+            if (!success) allSuccess = false;
+
+            msgBuilder.append(String.format("[%s 미션] %s\n",
+                    itemResult.getMissionType(),
+                    success ? "성공" : "실패"));
         }
 
-        DroneMissionResult saved = resultRepository.save(
-                DroneMissionResult.builder()
-                        .userId(userId)
-                        .missionId(missionId)
-                        .droneId(dto.getDroneId())
-                        .totalTime(dto.getTotalTime())
-                        .deviationCount(dto.getDeviationCount())
-                        .collisionCount(dto.getCollisionCount())
-                        .score(score)
-                        .success(success)
-                        .build()
-        );
+        DroneMissionResult result = DroneMissionResult.builder()
+                .userId(userId)
+                .missionId(missionId)
+                .droneId(dto.getDroneId())
+                .totalTime(itemResults.stream().mapToDouble(i -> i.getTotalTime()).sum())
+                .deviationCount(itemResults.stream().mapToInt(i -> i.getDeviationCount()).sum())
+                .collisionCount(itemResults.stream().mapToInt(i -> i.getCollisionCount()).sum())
+                .score(totalScore)
+                .success(allSuccess)
+                .build();
 
-        String msg;
-        if (!success) {
-            if (isTimeExceeded) {
-                msg = "제한시간을 초과하여 미션에 실패했습니다.";
-            } else {
-                msg = "미션 조건을 만족하지 못해 실패했습니다.";
-            }
-        } else {
-            int deviation = dto.getDeviationCount();
-            int collision = dto.getCollisionCount();
+        DroneMissionResult saved = resultRepository.save(result);
 
-            if (deviation == 0 && collision == 0) {
-                msg = String.format("미션 완료! %d점입니다. 이탈과 충돌 없이 성공했습니다.", score);
-            } else if (deviation == 0) {
-                msg = String.format("미션 완료! %d점입니다. 충돌 %d회 발생했습니다.", score, collision);
-            } else if (collision == 0) {
-                msg = String.format("미션 완료! %d점입니다. 이탈 %d회 발생했습니다.", score, deviation);
-            } else {
-                msg = String.format("미션 완료! %d점입니다. 이탈 %d회, 충돌 %d회 발생했습니다.", score, deviation, collision);
-            }
-        }
+        String finalMsg = allSuccess ? "모든 미션 아이템 성공!" : "일부 미션 아이템 실패함.";
+        finalMsg += "\n" + msgBuilder.toString();
 
         return MissionCompleteResponseDto.builder()
-                .score(score)
+                .score(totalScore)
                 .duration(saved.getTotalTime())
-                .deviationCount(dto.getDeviationCount())
-                .collisionCount(dto.getCollisionCount())
-                .success(success)
-                .message(msg)
+                .deviationCount(saved.getDeviationCount())
+                .collisionCount(saved.getCollisionCount())
+                .success(allSuccess)
+                .message(finalMsg)
                 .build();
     }
-
 }

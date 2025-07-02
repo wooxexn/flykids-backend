@@ -1,12 +1,14 @@
 package com.mtvs.flykidsbackend.mission.entity;
 
-import com.mtvs.flykidsbackend.mission.model.MissionType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 /**
  * 미션 엔티티
- * - 단일 미션 타입으로 관리 (COIN / OBSTACLE / PHOTO)
+ * - 복합 미션 단위로 관리
+ * - 여러 MissionItem을 포함하는 구조로 변경
  */
 @Entity
 @Table(name = "missions")
@@ -26,21 +28,19 @@ public class Mission {
     @Column(nullable = false)
     private String title;
 
-    /** 제한 시간 (초 단위) */
+    /**
+     * 미션 제한 시간 (초 단위)
+     * - 전체 미션의 수행 가능 최대 시간
+     * - 모든 단계별 미션(Item)에 공통 적용 가능
+     * - 게임 클라이언트 및 백엔드에서 제한시간 검증에 사용
+     */
     @Column(nullable = false)
     private int timeLimit;
 
-    /** 미션 유형 (COIN / OBSTACLE / PHOTO) */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MissionType type;
-
     /**
-     * 미션에서 요구하는 총 코인 개수
-     * - 코인 먹기 미션에서 플레이어가 모두 수집해야 하는 코인 총량
-     * - 성공 여부 판단 시 기준으로 사용됨
+     * 미션에 속한 여러 MissionItem 리스트
+     * - 미션 단위로 여러 단계별 미션을 포함
      */
-    @Column(nullable = false)
-    private int totalCoinCount;
-
+    @OneToMany(mappedBy = "mission", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MissionItem> missionItems;
 }
