@@ -4,8 +4,11 @@ import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionCompleteResponseDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
+import com.mtvs.flykidsbackend.mission.entity.Mission;
+import com.mtvs.flykidsbackend.mission.entity.MissionItem;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 미션 관리 서비스 인터페이스
@@ -33,4 +36,10 @@ public interface MissionService {
             Long userId,
             Long missionId,
             DroneMissionResultRequestDto requestDto);
+
+    // Mission 엔티티 조회용 메서드
+    Optional<Mission> findById(Long id);
+
+    // MissionItem 엔티티 조회용 메서드
+    Optional<MissionItem> findMissionItemById(Long id);
 }

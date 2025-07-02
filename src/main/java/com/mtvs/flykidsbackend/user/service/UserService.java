@@ -6,6 +6,8 @@ import com.mtvs.flykidsbackend.user.dto.TokenResponseDto;
 import com.mtvs.flykidsbackend.user.dto.UserInfoResponseDto;
 import com.mtvs.flykidsbackend.user.entity.User;
 
+import java.util.Optional;
+
 /**
  * 사용자 관련 서비스 로직의 인터페이스
  * 회원가입, 로그인, 사용자 조회 기능을 정의한다
@@ -54,4 +56,11 @@ public interface UserService {
 
     // 회원 탈퇴
     void withdrawUser(String username);
+
+    /**
+     * ID로 사용자 조회
+     * @param id 사용자 ID
+     * @return Optional<User>
+     */
+    Optional<User> findById(Long id);
 }

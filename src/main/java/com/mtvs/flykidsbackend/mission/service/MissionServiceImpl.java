@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 public class MissionServiceImpl implements MissionService {
 
     private final MissionRepository missionRepository;
-    private final MissionItemRepository missionItemRepository; // 추가
+    private final MissionItemRepository missionItemRepository;
     private final DroneMissionResultRepository resultRepository;
     private final DroneMissionResultService resultService;
 
@@ -183,4 +184,16 @@ public class MissionServiceImpl implements MissionService {
                 .message(finalMsg)
                 .build();
     }
+
+    @Override
+    public Optional<Mission> findById(Long id) {
+        return missionRepository.findById(id);
+    }
+
+    @Override
+    public Optional<MissionItem> findMissionItemById(Long id) {
+        return missionItemRepository.findById(id);
+    }
 }
+
+
