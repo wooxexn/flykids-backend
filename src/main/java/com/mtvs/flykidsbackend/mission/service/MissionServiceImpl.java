@@ -31,6 +31,8 @@ public class MissionServiceImpl implements MissionService {
     private final MissionItemRepository missionItemRepository;
     private final DroneMissionResultRepository resultRepository;
     private final DroneMissionResultService resultService;
+    private final ScoreCalculator scoreCalculator;
+
 
     @Override
     @Transactional
@@ -118,6 +120,17 @@ public class MissionServiceImpl implements MissionService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 미션 완료 처리
+     * - 미션 아이템별 결과를 받아 점수를 계산하고 성공 여부 판단
+     * - 결과를 DroneMissionResult 엔티티로 저장
+     * - 최종 점수, 소요 시간, 이탈/충돌 횟수, 성공 여부, 안내 메시지 반환
+     *
+     * @param userId    완료한 유저 ID (JWT 토큰에서 추출)
+     * @param missionId 완료한 미션 ID
+     * @param dto       미션 아이템별 결과 데이터 DTO
+     * @return 미션 완료 결과 응답 DTO
+     */
     @Transactional
     @Override
     public MissionCompleteResponseDto completeMission(Long userId, Long missionId, DroneMissionResultRequestDto dto) {
@@ -133,14 +146,17 @@ public class MissionServiceImpl implements MissionService {
         boolean allSuccess = true;
         StringBuilder msgBuilder = new StringBuilder();
 
+
+        // 각 미션 아이템별 결과 처리
         for (var itemResult : itemResults) {
-            // missionItem 변수 추가 - mission에서 해당 타입 미션 아이템 찾기
+            // 미션에서 해당 타입의 미션 아이템 조회
             MissionItem missionItem = mission.getMissionItems().stream()
                     .filter(mi -> mi.getType() == itemResult.getMissionType())
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("해당 미션 아이템이 존재하지 않습니다."));
 
-            int score = resultService.calculateScore(
+            // ScoreCalculator에 점수 계산 위임
+            int score = scoreCalculator.calculateScore(
                     itemResult.getMissionType(),
                     itemResult.getTotalTime(),
                     itemResult.getDeviationCount(),
@@ -148,17 +164,19 @@ public class MissionServiceImpl implements MissionService {
                     itemResult.getCollectedCoinCount() != null ? itemResult.getCollectedCoinCount() : 0
             );
 
-            // mission → missionItem 으로 바꿈
-            boolean success = resultService.isMissionSuccess(itemResult.getMissionType(), itemResult, missionItem);
+            // ScoreCalculator에 성공 여부 판단 위임
+            boolean success = scoreCalculator.isMissionSuccess(itemResult.getMissionType(), itemResult, missionItem);
 
             totalScore += score;
             if (!success) allSuccess = false;
 
+            // 결과 메시지 빌더에 상태 추가
             msgBuilder.append(String.format("[%s 미션] %s\n",
                     itemResult.getMissionType(),
                     success ? "성공" : "실패"));
         }
 
+        // DroneMissionResult 엔티티 생성 및 저장
         DroneMissionResult result = DroneMissionResult.builder()
                 .userId(userId)
                 .missionId(missionId)
@@ -172,9 +190,11 @@ public class MissionServiceImpl implements MissionService {
 
         DroneMissionResult saved = resultRepository.save(result);
 
+        // 최종 안내 메시지 작성
         String finalMsg = allSuccess ? "모든 미션 아이템 성공!" : "일부 미션 아이템 실패함.";
         finalMsg += "\n" + msgBuilder.toString();
 
+        // 응답 DTO 반환
         return MissionCompleteResponseDto.builder()
                 .score(totalScore)
                 .duration(saved.getTotalTime())

@@ -1,5 +1,7 @@
 package com.mtvs.flykidsbackend.mission.service;
 
+import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
+import com.mtvs.flykidsbackend.mission.entity.MissionItem;
 import com.mtvs.flykidsbackend.mission.model.MissionType;
 import org.springframework.stereotype.Component;
 
@@ -51,4 +53,30 @@ public class ScoreCalculator {
         return Math.max(0, 100 - (deviationCount * 5));
     }
 
+    /**
+     * 미션 성공 여부 판단
+     * - 미션 타입별로 성공 조건을 달리 적용한다.
+     *
+     * @param type        미션 유형 (COIN, OBSTACLE, PHOTO 등)
+     * @param dto         클라이언트에서 전달받은 미션 아이템별 결과 데이터
+     * @param missionItem DB에 저장된 미션 아이템 정보 (성공 기준 데이터 포함)
+     * @return 성공 여부 (true: 성공, false: 실패)
+     * @throws IllegalArgumentException 지원하지 않는 미션 유형인 경우 발생
+     */
+    public boolean isMissionSuccess(MissionType type, DroneMissionResultRequestDto.MissionItemResult dto, MissionItem missionItem) {
+        switch (type) {
+            // COIN 미션은 수집한 코인 개수가 총 코인 개수와 일치해야 성공
+            case COIN:
+                return dto.getCollectedCoinCount() != null
+                        && dto.getCollectedCoinCount() == (missionItem.getTotalCoinCount() != null ? missionItem.getTotalCoinCount() : 0);
+            case OBSTACLE:
+                // OBSTACLE 미션은 충돌 횟수가 3회 미만일 경우 성공 처리
+                return dto.getCollisionCount() < 3;
+            case PHOTO:
+                // PHOTO 미션은 사진 촬영 여부가 true일 경우 성공 처리
+                return dto.getPhotoCaptured() != null && dto.getPhotoCaptured();
+            default:
+                throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");
+        }
+    }
 }
