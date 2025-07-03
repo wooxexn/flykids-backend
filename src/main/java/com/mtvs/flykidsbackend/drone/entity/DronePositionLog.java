@@ -41,5 +41,6 @@ public class DronePositionLog {
 
     private double rotationY;
 
+    @Builder.Default
     private LocalDateTime loggedAt = LocalDateTime.now();
 }
