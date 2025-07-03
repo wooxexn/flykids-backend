@@ -33,7 +33,7 @@ public class UserMissionProgressController {
      * 특정 유저, 미션에 대한 모든 단계별 진행 상태 조회
      */
     @GetMapping("/missions/{missionId}")
-    @Operation(summary = "유저 미션 진행 상태 조회", description = "특정 미션에 대한 유저의 단계별 진행 상태를 조회한다")
+    @Operation(summary = "유저 미션 진행 상태 조회", description = "특정 미션에 대한 유저의 단계별 진행 상태를 조회합니다.")
     public ResponseEntity<List<UserMissionProgressResponseDto>> getProgressList(
             @PathVariable Long missionId,
             HttpServletRequest request) {
@@ -57,7 +57,7 @@ public class UserMissionProgressController {
      * 미션 단계별 진행 상태 업데이트
      */
     @PostMapping("/missions/{missionId}/items/{missionItemId}")
-    @Operation(summary = "유저 미션 단계 진행 상태 업데이트", description = "특정 미션 단계의 진행 상태를 업데이트한다")
+    @Operation(summary = "유저 미션 단계 진행 상태 업데이트", description = "특정 미션 단계의 진행 상태를 업데이트합니다.")
     public ResponseEntity<Void> updateProgress(
             @PathVariable Long missionId,
             @PathVariable Long missionItemId,
