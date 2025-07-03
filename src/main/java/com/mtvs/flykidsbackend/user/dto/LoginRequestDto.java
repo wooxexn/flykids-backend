@@ -21,4 +21,9 @@ public class LoginRequestDto {
     @NotBlank(message = "비밀번호는 필수입니다.")
     @Schema(description = "사용자 비밀번호", example = "test1234")
     private String password;
+
+    public LoginRequestDto(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
 }

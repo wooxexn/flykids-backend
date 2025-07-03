@@ -1,8 +1,7 @@
 package com.mtvs.flykidsbackend.drone.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * 드론 위치 전송 요청 DTO
@@ -12,6 +11,9 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DronePositionRequestDto {
 
     @Schema(description = "드론의 x축 위치", example = "1.23")

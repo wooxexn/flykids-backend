@@ -68,6 +68,10 @@ public class DroneMissionResultService {
 
     // 미션 성공 판단 로직
     public boolean isMissionSuccess(MissionType type, MissionItemResult dto, MissionItem missionItem) {
+        if (type == null) {
+            throw new IllegalArgumentException("지원하지 않는 미션 유형입니다.");
+        }
+
         switch(type) {
             case COIN:
                 return dto.getCollectedCoinCount() != null

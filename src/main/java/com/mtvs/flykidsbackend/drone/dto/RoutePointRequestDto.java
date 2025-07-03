@@ -1,8 +1,7 @@
 package com.mtvs.flykidsbackend.drone.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /**
  * 기준 경로 등록 요청 DTO
@@ -10,6 +9,9 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Schema(description = "기준 경로 등록 요청 DTO")
 public class RoutePointRequestDto {
 

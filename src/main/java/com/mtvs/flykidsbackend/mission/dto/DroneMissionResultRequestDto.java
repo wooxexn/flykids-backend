@@ -2,6 +2,7 @@ package com.mtvs.flykidsbackend.mission.dto;
 
 import com.mtvs.flykidsbackend.mission.model.MissionType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,6 +19,7 @@ import java.util.List;
  */
 @Getter
 @Setter
+@Builder
 public class DroneMissionResultRequestDto {
 
     /** 사용한 드론 ID */
@@ -30,6 +32,7 @@ public class DroneMissionResultRequestDto {
 
     @Getter
     @Setter
+    @Builder
     public static class MissionItemResult {
         /** 미션 유형 (COIN, OBSTACLE, PHOTO) */
         @Schema(description = "미션 유형", example = "COIN")

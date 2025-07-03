@@ -16,7 +16,7 @@ import java.util.Optional;
 
 /**
  * 드론 위치 처리 서비스
- *
+ * <p>
  * 유니티 클라이언트에서 수신한 드론 좌표 데이터를 DB에 저장하고,
  * 기준 경로와 비교하여 경로 이탈, 고도 이탈, 충돌 여부를 판단한다.
  */
@@ -29,8 +29,8 @@ public class DronePositionService {
     private final RouteDeviationLogRepository routeDeviationLogRepository;
 
     private static final double ALLOWED_DISTANCE = 2.5; // 경로 이탈 허용 수평 거리(m)
-    private static final double MIN_ALTITUDE     = 0.5; // 최소 고도(m)
-    private static final double MAX_ALTITUDE     = 3.0; // 최대 고도(m)
+    private static final double MIN_ALTITUDE = 0.5; // 최소 고도(m)
+    private static final double MAX_ALTITUDE = 3.0; // 최대 고도(m)
 
     /**
      * 드론 위치 데이터를 저장하고 경로 이탈, 고도 이탈, 충돌 여부를 판단한다.
@@ -39,15 +39,16 @@ public class DronePositionService {
      * @return DroneResponse(status, message)
      */
     public DroneResponse savePosition(DronePositionRequestDto requestDto) {
-        // 요청 값 유효성 검사
-        if (requestDto == null
-                || requestDto.getMissionId() == null || requestDto.getMissionId() <= 0
-                || requestDto.getDroneId() == null || requestDto.getDroneId().isBlank()) {
-            throw new IllegalArgumentException("유효하지 않은 드론 위치 정보입니다.");
-        }
 
         try {
-            // 현재 위치 로그 생성 및 저장
+            // 요청 값 유효성 검사
+            if (requestDto == null
+                    || requestDto.getMissionId() == null || requestDto.getMissionId() <= 0
+                    || requestDto.getDroneId() == null || requestDto.getDroneId().isBlank()) {
+                throw new IllegalArgumentException("유효하지 않은 드론 위치 정보입니다.");
+            }
+
+            // 현재 위치 로그 생성 & 저장
             DronePositionLog log = DronePositionLog.builder()
                     .droneId(requestDto.getDroneId())
                     .missionId(requestDto.getMissionId())
@@ -60,48 +61,51 @@ public class DronePositionService {
             dronePositionLogRepository.save(log);
 
             // 기준 경로 조회
-            List<RoutePoint> routePoints = routePointService.getRouteByMissionId(requestDto.getMissionId());
+            List<RoutePoint> routePoints =
+                    routePointService.getRouteByMissionId(requestDto.getMissionId());
+
             if (routePoints == null || routePoints.isEmpty()) {
                 throw new IllegalArgumentException("해당 미션의 기준 경로가 존재하지 않습니다.");
             }
 
             // 충돌 추정 판단
-            Optional<DronePositionLog> optionalLastLog =
-                    dronePositionLogRepository.findTopByDroneIdAndLoggedAtBeforeOrderByLoggedAtDesc(
-                            requestDto.getDroneId(), log.getLoggedAt()
-                    );
+            Optional<DronePositionLog> optPrev =
+                    dronePositionLogRepository
+                            .findTopByDroneIdAndLoggedAtBeforeOrderByLoggedAtDesc(
+                                    requestDto.getDroneId(), log.getLoggedAt());
 
-            if (optionalLastLog.isPresent()) {
-                DronePositionLog lastLog = optionalLastLog.get();
+            if (optPrev.isPresent()) {
+                DronePositionLog prev = optPrev.get();
 
-                double deltaY = Math.abs(log.getY() - lastLog.getY());
-                double deltaRotation = Math.abs(log.getRotationY() - lastLog.getRotationY());
-                double deltaDistance = calculateDistance(log, lastLog);
+                double deltaY        = Math.abs(log.getY() - prev.getY());
+                double deltaRot      = Math.abs(log.getRotationY() - prev.getRotationY());
+                double deltaDistance = calculateDistance(log, prev);
 
-                if (deltaY > 0.7 || deltaDistance < 0.1 || deltaRotation > 45.0) {
+                if (deltaY > 0.7 || deltaDistance < 0.1 || deltaRot > 45.0) {
                     saveDeviationLog(log);
                     return new DroneResponse("COLLISION", "경고: 충돌이 감지되었습니다.");
                 }
             }
 
-            // 고도 이탈 판단
-            double currentY = log.getY();
-            if (currentY < MIN_ALTITUDE || currentY > MAX_ALTITUDE) {
+            // 고도 이탈 체크
+            double y = log.getY();
+            if (y < MIN_ALTITUDE || y > MAX_ALTITUDE) {
                 saveDeviationLog(log);
                 return new DroneResponse("ALTITUDE_ERROR", "경고: 고도가 기준 범위를 벗어났습니다.");
             }
 
-            // 경로 이탈 판단
+            // 경로 이탈 체크
             if (isOutOfRoute(log, routePoints)) {
                 saveDeviationLog(log);
                 return new DroneResponse("OUT_OF_BOUNDS", "경고: 드론이 기준 경로를 이탈했습니다.");
             }
 
-            // 정상 저장 응답
+            // 정상처리
             return new DroneResponse("OK", "드론 위치가 정상적으로 저장되었습니다.");
 
         } catch (Exception ex) {
-            return new DroneResponse("ERROR", "드론 위치 저장 중 오류 발생: " + ex.getMessage());
+            return new DroneResponse("ERROR",
+                    "드론 위치 저장 중 오류 발생: " + ex.getMessage());
         }
     }
 

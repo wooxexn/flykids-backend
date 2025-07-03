@@ -2,9 +2,7 @@ package com.mtvs.flykidsbackend.mission.dto;
 
 import com.mtvs.flykidsbackend.mission.model.MissionType;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
@@ -17,6 +15,8 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MissionRequestDto {
 
     @Schema(description = "미션 제목", example = "드론 퀘스트")
@@ -31,6 +31,8 @@ public class MissionRequestDto {
     @Getter
     @Setter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class MissionItemDto {
 
         @Schema(description = "미션 아이템 제목", example = "코인 미션")

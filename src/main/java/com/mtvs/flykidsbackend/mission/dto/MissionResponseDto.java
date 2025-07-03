@@ -45,9 +45,13 @@ public class MissionResponseDto {
         return MissionResponseDto.builder()
                 .id(mission.getId())
                 .title(mission.getTitle())
-                .items(mission.getMissionItems().stream()
-                        .map(MissionItemResponseDto::from)
-                        .collect(Collectors.toList()))
+                .items(
+                        mission.getMissionItems() == null
+                                ? List.of()
+                                : mission.getMissionItems().stream()
+                                .map(MissionItemResponseDto::from)
+                                .collect(Collectors.toList())
+                )
                 .build();
     }
 

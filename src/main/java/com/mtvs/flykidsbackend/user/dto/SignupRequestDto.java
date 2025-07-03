@@ -25,4 +25,10 @@ public class SignupRequestDto {
     @NotBlank(message = "닉네임은 필수입니다.")
     @Schema(description = "사용자 닉네임", example = "테스터")
     private String nickname;
+
+    public SignupRequestDto(String username, String password, String nickname) {
+        this.username = username;
+        this.password = password;
+        this.nickname = nickname;
+    }
 }
