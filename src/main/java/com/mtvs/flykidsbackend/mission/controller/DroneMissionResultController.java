@@ -31,7 +31,7 @@ public class DroneMissionResultController {
      * @return 점수 + 메시지를 포함한 응답
      */
     @PostMapping("/{missionId}/complete")
-    @Operation(summary = "미션 완료 처리", description = "결과 저장 후 점수 및 TTS 피드백 메시지를 반환한다.")
+    @Operation(summary = "미션 완료 처리", description = "결과 저장 후 점수 및 TTS 피드백 메시지를 반환합니다.")
     public ResponseEntity<MissionCompleteResponseDto> completeMission(
             @PathVariable Long missionId,
             @RequestBody DroneMissionResultRequestDto requestDto,
