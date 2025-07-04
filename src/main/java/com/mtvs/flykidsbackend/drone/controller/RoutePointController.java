@@ -52,7 +52,7 @@ public class RoutePointController {
      */
     @Operation(summary = "기준 경로 조회", description = "미션 ID에 해당하는 기준 경로 좌표 리스트를 조회합니다.")
     @GetMapping("/points")
-    public ResponseEntity<List<RoutePoint>> getRoutePoints(@RequestParam Long missionId) {
+    public ResponseEntity<List<RoutePoint>> getRoutePoints(@RequestParam("missionId") Long missionId) {
         List<RoutePoint> points = routePointService.getRouteByMissionId(missionId);
         return ResponseEntity.ok(points);
     }

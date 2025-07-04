@@ -26,4 +26,7 @@ public class RoutePointRequestDto {
 
     @Schema(description = "Z 좌표", example = "7.89")
     private double z;
+
+    @Schema(description = "Y축 회전 각도", example = "90.0")
+    private double rotationY;
 }
