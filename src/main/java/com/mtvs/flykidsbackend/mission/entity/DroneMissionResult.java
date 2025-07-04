@@ -37,7 +37,7 @@ public class DroneMissionResult {
     private Long missionId;
 
     /** 사용한 드론 ID (기본 드론 1종만 사용하더라도 기록용 필드 유지) */
-    private Long droneId;
+    private String droneId;
 
     /** 총 비행 시간 (단위: 초) */
     private double totalTime;

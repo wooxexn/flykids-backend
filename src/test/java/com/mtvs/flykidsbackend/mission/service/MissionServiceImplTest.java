@@ -177,7 +177,7 @@ class MissionServiceImplTest {
                         .build();
 
         DroneMissionResultRequestDto dto = DroneMissionResultRequestDto.builder()
-                .droneId(1L)
+                .droneId("1")
                 .itemResults(List.of(itemResult))
                 .build();
 

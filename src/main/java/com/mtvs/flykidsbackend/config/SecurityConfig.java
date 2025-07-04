@@ -52,7 +52,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/missions/**/complete").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/missions/*/complete").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

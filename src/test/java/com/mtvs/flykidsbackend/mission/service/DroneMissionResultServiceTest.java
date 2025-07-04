@@ -135,7 +135,7 @@ class DroneMissionResultServiceTest {
 
         // 테스트용 미션 결과 DTO 생성 (코인 + 장애물)
         DroneMissionResultRequestDto dto = DroneMissionResultRequestDto.builder()
-                .droneId(1L)
+                .droneId("1")
                 .itemResults(List.of(
                         itemResult(MissionType.COIN, 30, 0, 0, 5, null),
                         itemResult(MissionType.OBSTACLE, 25, 0, 2, null, null)
@@ -168,7 +168,7 @@ class DroneMissionResultServiceTest {
         given(missionRepo.findById(99L)).willReturn(Optional.empty());
 
         DroneMissionResultRequestDto dto = DroneMissionResultRequestDto.builder()
-                .droneId(1L)
+                .droneId("1")
                 .itemResults(List.of())
                 .build();
 

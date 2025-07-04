@@ -1,5 +1,8 @@
 package com.mtvs.flykidsbackend.mission.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * 미션 유형 ENUM
  * - 미션의 종류에 따라 점수 계산 방식이 달라지므로 구분 필요
@@ -10,5 +13,17 @@ package com.mtvs.flykidsbackend.mission.model;
 public enum MissionType {
     COIN,
     OBSTACLE,
-    PHOTO
+    PHOTO,
+    COMPLEX;
+
+    @JsonCreator
+    public static MissionType from(String value) {
+        if (value == null) return null;
+        return MissionType.valueOf(value.toUpperCase());
+    }
+
+    @JsonValue
+    public String toValue() {
+        return this.name();
+    }
 }

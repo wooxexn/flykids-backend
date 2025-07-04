@@ -63,12 +63,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String role = jwtUtil.getUserRole(token); // 예: "USER" 또는 "ADMIN"
 
             // 4) 권한 생성
-            SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+            SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
             List<SimpleGrantedAuthority> authorities = List.of(authority);
 
             // 5) 인증 객체 생성
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(username, null, authorities);
+                    new UsernamePasswordAuthenticationToken(user, null, authorities);
 
             // 6) 인증 정보에 요청 정보 추가
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
