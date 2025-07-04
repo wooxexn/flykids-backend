@@ -35,13 +35,10 @@ public class DroneMissionResultControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // 만약 JwtAuthenticationFilter 등 Security Filter가 있다면 주입해야 할 수도 있음
     @Autowired(required = false)
     private Filter springSecurityFilterChain;
 
     private Long missionId = 1L;
-
-    private Long testUserId = 123L; // 테스트용 userId, 실제 테스트용 DB에 맞게 변경
 
     private DroneMissionResultRequestDto requestDto;
 
