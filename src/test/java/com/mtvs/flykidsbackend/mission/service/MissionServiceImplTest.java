@@ -75,8 +75,7 @@ class MissionServiceImplTest {
         when(missionRepository.save(any())).thenReturn(mission);
 
         // when
-        MissionResponseDto response = service.createMission(requestDto);
-
+        MissionResponseDto response = service.createMission(requestDto, 1L);
         // then
         assertThat(response.getTitle()).isEqualTo("테스트 미션");
         verify(missionRepository).save(any(Mission.class));
