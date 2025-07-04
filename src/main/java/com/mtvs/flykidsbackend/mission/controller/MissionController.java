@@ -48,7 +48,7 @@ public class MissionController {
     @Operation(summary = "미션 수정", description = "기존 미션 정보를 수정합니다.")
     @PatchMapping("/{id}")
     public ResponseEntity<MissionResponseDto> updateMission(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody MissionRequestDto requestDto
     ) {
         return ResponseEntity.ok(missionService.updateMission(id, requestDto));
@@ -75,10 +75,17 @@ public class MissionController {
      * @param id 조회할 미션 ID
      * @return 미션 상세 정보
      */
-    @Operation(summary = "미션 단건 조회", description = "미션 ID로 상세 정보를 조회합니다.")
     @GetMapping("/{id}")
-    public ResponseEntity<MissionResponseDto> getMission(@PathVariable Long id) {
-        return ResponseEntity.ok(missionService.getMission(id));
+    public ResponseEntity<?> getMission(@PathVariable("id") Long id) {
+        try {
+            MissionResponseDto mission = missionService.getMission(id);
+            return ResponseEntity.ok(mission);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("존재하지 않습니다")) {
+                return ResponseEntity.status(404).body(e.getMessage());
+            }
+            return ResponseEntity.status(500).body("서버 오류 발생");
+        }
     }
 
     /**

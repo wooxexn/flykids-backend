@@ -3,6 +3,7 @@ package com.mtvs.flykidsbackend.mission.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,5 +43,15 @@ public class Mission {
      * - 미션 단위로 여러 단계별 미션을 포함
      */
     @OneToMany(mappedBy = "mission", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MissionItem> missionItems;
+    private final List<MissionItem> missionItems = new ArrayList<>();
+
+    public void addItem(MissionItem item) {
+        missionItems.add(item);
+        item.setMission(this); // 연관관계 편의 메서드
+    }
+
+    public void removeItem(MissionItem item) {
+        missionItems.remove(item);
+        item.setMission(null);  // 연관관계 끊기
+    }
 }

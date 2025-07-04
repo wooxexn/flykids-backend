@@ -64,22 +64,23 @@ class MissionServiceImplTest {
      */
     @Test
     void createMission_정상동작() {
-        Mission mission = Mission.builder().id(1L).title("테스트 미션").build();
+        // given
+        Mission mission = Mission.builder()
+                .id(1L)
+                .title("테스트 미션")
+                .timeLimit(60)
+                .build();
+
+        // missionRepository.save() 호출 시 위 객체 리턴
         when(missionRepository.save(any())).thenReturn(mission);
 
-        MissionItem item = MissionItem.builder()
-                .id(1L)
-                .title("장애물 통과")
-                .type(MissionType.OBSTACLE)
-                .mission(mission)
-                .build();
-        when(missionItemRepository.save(any())).thenReturn(item);
-
+        // when
         MissionResponseDto response = service.createMission(requestDto);
 
+        // then
         assertThat(response.getTitle()).isEqualTo("테스트 미션");
         verify(missionRepository).save(any(Mission.class));
-        verify(missionItemRepository).save(any(MissionItem.class));
+
     }
 
     /**
@@ -92,28 +93,30 @@ class MissionServiceImplTest {
      */
     @Test
     void updateMission_기존아이템삭제_새로저장() {
+        // 기존 MissionItem 1개가 있는 Mission
+        MissionItem oldItem = MissionItem.builder()
+                .id(100L)
+                .title("기존 아이템")
+                .type(MissionType.OBSTACLE)
+                .timeLimit(60)
+                .build();
+
         Mission mission = Mission.builder()
                 .id(1L)
                 .title("기존 미션")
-                .missionItems(new ArrayList<>())
+                .timeLimit(60)
                 .build();
 
-        when(missionRepository.findById(1L)).thenReturn(Optional.of(mission));
-        when(missionItemRepository.save(any())).thenAnswer(invocation -> {
-            MissionItem mi = invocation.getArgument(0);
-            if (mi.getMission() == null) {
-                mi.setMission(mission);
-            }
-            return mi;
-        });
+        mission.addItem(oldItem); // 기존 아이템 설정
 
-        // save 호출 시 인자로 받은 객체를 그대로 반환하도록 설정
-        when(missionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(missionRepository.findById(1L)).thenReturn(Optional.of(mission));
 
         MissionResponseDto result = service.updateMission(1L, requestDto);
 
         assertThat(result.getTitle()).isEqualTo("테스트 미션");
-        verify(missionItemRepository).deleteAllByMissionId(1L);
+
+        // deleteAllByMissionId는 호출되지 않음 (orphanRemoval 사용 시)
+        verify(missionItemRepository, never()).deleteAllByMissionId(any());
     }
 
     /**
@@ -138,7 +141,7 @@ class MissionServiceImplTest {
         Mission mission = Mission.builder()
                 .id(1L)
                 .title("조회용 미션")
-                .missionItems(new ArrayList<>())
+                .timeLimit(60)
                 .build();
 
         when(missionRepository.findById(1L)).thenReturn(Optional.of(mission));
@@ -164,8 +167,10 @@ class MissionServiceImplTest {
         Mission mission = Mission.builder()
                 .id(1L)
                 .title("복합 미션")
-                .missionItems(List.of(missionItem))
+                .timeLimit(60)
                 .build();
+
+        mission.addItem(missionItem);
 
         DroneMissionResultRequestDto.MissionItemResult itemResult =
                 DroneMissionResultRequestDto.MissionItemResult.builder()

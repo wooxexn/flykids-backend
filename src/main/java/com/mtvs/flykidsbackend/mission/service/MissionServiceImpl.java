@@ -33,66 +33,46 @@ public class MissionServiceImpl implements MissionService {
     private final DroneMissionResultService resultService;
     private final ScoreCalculator scoreCalculator;
 
-
     @Override
     @Transactional
-    public MissionResponseDto createMission(MissionRequestDto requestDto) {
-        // Mission 엔티티 생성
+    public MissionResponseDto createMission(MissionRequestDto dto) {
         Mission mission = Mission.builder()
-                .title(requestDto.getTitle())
+                .title(dto.getTitle())
+                .timeLimit(dto.getTimeLimit())
                 .build();
 
-        Mission savedMission = missionRepository.save(mission);
+        dto.getItems().forEach(i -> mission.addItem(
+                MissionItem.builder()
+                        .title(i.getTitle())
+                        .timeLimit(i.getTimeLimit())
+                        .type(i.getType())
+                        .totalCoinCount(i.getTotalCoinCount())
+                        .build()
+        ));
 
-        // MissionItem 리스트 생성 및 저장
-        List<MissionItem> missionItems = requestDto.getItems().stream()
-                .map(itemDto -> {
-                    MissionItem missionItem = MissionItem.builder()
-                            .mission(savedMission)
-                            .title(itemDto.getTitle())
-                            .timeLimit(itemDto.getTimeLimit())
-                            .type(itemDto.getType())
-                            .totalCoinCount(itemDto.getTotalCoinCount())
-                            .build();
-                    return missionItemRepository.save(missionItem);
-                })
-                .collect(Collectors.toList());
-
-        savedMission.setMissionItems(missionItems);
-
-        return MissionResponseDto.from(savedMission);
+        return MissionResponseDto.from(missionRepository.save(mission));
     }
 
     @Override
     @Transactional
-    public MissionResponseDto updateMission(Long id, MissionRequestDto requestDto) {
+    public MissionResponseDto updateMission(Long id, MissionRequestDto dto) {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
-        mission.setTitle(requestDto.getTitle());
+        mission.setTitle(dto.getTitle());
+        mission.setTimeLimit(dto.getTimeLimit());   // 빠져 있던 부분
 
-        // 기존 미션 아이템 모두 삭제 (orphanRemoval = true 설정 시 자동 가능)
-        mission.getMissionItems().clear();
-        missionItemRepository.deleteAllByMissionId(mission.getId());
+        mission.getMissionItems().clear();          // orphanRemoval=true → 자동 삭제
+        dto.getItems().forEach(i -> mission.addItem(
+                MissionItem.builder()
+                        .title(i.getTitle())
+                        .timeLimit(i.getTimeLimit())
+                        .type(i.getType())
+                        .totalCoinCount(i.getTotalCoinCount())
+                        .build()
+        ));
 
-        // 새로운 미션 아이템 저장 및 설정
-        List<MissionItem> updatedItems = requestDto.getItems().stream()
-                .map(itemDto -> {
-                    MissionItem missionItem = MissionItem.builder()
-                            .mission(mission)
-                            .title(itemDto.getTitle())
-                            .timeLimit(itemDto.getTimeLimit())
-                            .type(itemDto.getType())
-                            .totalCoinCount(itemDto.getTotalCoinCount())
-                            .build();
-                    return missionItemRepository.save(missionItem);
-                })
-                .collect(Collectors.toList());
-
-        mission.setMissionItems(updatedItems);
-
-        Mission updated = missionRepository.save(mission);
-        return MissionResponseDto.from(updated);
+        return MissionResponseDto.from(mission);    // dirty checking
     }
 
     // 이하 기존 메서드 유지
