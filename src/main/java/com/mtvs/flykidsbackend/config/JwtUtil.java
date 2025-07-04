@@ -90,7 +90,7 @@ public class JwtUtil {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
-                .parseClaimsJws(token.replace(BEARER_PREFIX, ""))
+                .parseClaimsJws(token)
                 .getBody();
     }
 

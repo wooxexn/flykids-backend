@@ -1,5 +1,6 @@
 package com.mtvs.flykidsbackend.config;
 
+import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -68,7 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 5) 인증 객체 생성
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(user, null, authorities);
+                    new UsernamePasswordAuthenticationToken(new CustomUserDetails(user), null, authorities);
 
             // 6) 인증 정보에 요청 정보 추가
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
