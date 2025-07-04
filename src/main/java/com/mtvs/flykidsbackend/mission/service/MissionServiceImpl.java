@@ -35,7 +35,9 @@ public class MissionServiceImpl implements MissionService {
 
     @Override
     @Transactional
-    public MissionResponseDto createMission(MissionRequestDto dto) {
+    public MissionResponseDto createMission(MissionRequestDto dto, Long userId) {
+        // TODO: userId로 권한 체크 또는 소유자 정보 저장 등 처리
+
         Mission mission = Mission.builder()
                 .title(dto.getTitle())
                 .timeLimit(dto.getTimeLimit())

@@ -17,7 +17,7 @@ import java.util.Optional;
 public interface MissionService {
 
     /** 미션 등록 */
-    MissionResponseDto createMission(MissionRequestDto requestDto);
+    MissionResponseDto createMission(MissionRequestDto dto, Long userId);
 
     /** 미션 수정 */
     MissionResponseDto updateMission(Long id, MissionRequestDto requestDto);

@@ -1,5 +1,6 @@
 package com.mtvs.flykidsbackend.mission.controller;
 
+import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionCompleteResponseDto;
 import com.mtvs.flykidsbackend.mission.service.MissionService;
@@ -40,8 +41,8 @@ public class DroneMissionResultController {
             Authentication authentication
     ) {
         try {
-            User user = (User) authentication.getPrincipal();
-            Long userId = user.getId();
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            Long userId = userDetails.getId();
 
             MissionCompleteResponseDto response =
                     missionService.completeMission(userId, missionId, requestDto);

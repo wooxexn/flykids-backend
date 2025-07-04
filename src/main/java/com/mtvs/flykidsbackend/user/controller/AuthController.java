@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,20 +39,21 @@ public class AuthController {
 
         // 리프레시 토큰 유효성 검사
         if (!jwtUtil.validateToken(refreshToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 리프레시 토큰입니다.");
         }
 
         // 토큰 타입 확인 (리프레시 토큰인지)
         if (!"refresh".equals(jwtUtil.getTokenType(refreshToken))) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not a refresh token");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("리프레시 토큰이 아닙니다.");
         }
 
         String username = jwtUtil.getUsername(refreshToken);
 
-        // 유저 존재 여부 확인 등 추가 검증 가능
+        // 유저 존재 여부 확인 (null 체크)
+        User user = userService.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
         // 새로운 액세스 토큰 생성
-        User user = userService.findByUsername(username);
         String newAccessToken = jwtUtil.createAccessToken(user.getUsername(), user.getRole().name());
 
         return ResponseEntity.ok(new TokenResponseDto(newAccessToken, refreshToken));

@@ -130,9 +130,8 @@ public class UserServiceImpl implements UserService {
      * @throws UsernameNotFoundException 사용자가 존재하지 않을 경우 예외 발생
      */
     @Override
-    public User findByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     /**

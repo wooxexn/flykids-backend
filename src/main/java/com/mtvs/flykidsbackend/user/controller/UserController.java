@@ -1,6 +1,7 @@
 package com.mtvs.flykidsbackend.user.controller;
 
 import com.mtvs.flykidsbackend.config.JwtUtil;
+import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.user.dto.*;
 import com.mtvs.flykidsbackend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import com.mtvs.flykidsbackend.user.dto.UpdatePasswordRequestDto;
 import com.mtvs.flykidsbackend.user.dto.UpdateNicknameRequestDto;
@@ -30,7 +32,8 @@ public class UserController {
 
     /**
      * 회원가입 API
-     * POST /api/users/signup
+     * - 사용자로부터 이메일, 비밀번호, 역할 정보를 받아 신규 회원 등록 처리
+     * - 정상 시 201 Created 반환, 예외 시 400 Bad Request 반환
      */
     @Operation(
             summary = "회원가입",
@@ -48,7 +51,8 @@ public class UserController {
 
     /**
      * 로그인 API
-     * POST /api/users/login
+     * - 이메일과 비밀번호 검증 후 액세스 토큰과 리프레시 토큰 발급
+     * - 성공 시 200 OK와 토큰 정보 반환, 실패 시 401 Unauthorized 반환
      */
     @Operation(
             summary = "로그인",
@@ -66,11 +70,8 @@ public class UserController {
 
     /**
      * 내 정보 조회 API
-     * - 요청 헤더의 Access Token에서 username을 추출하여 사용자 정보를 반환
-     * - Swagger의 Authorize 버튼으로 토큰 입력 시 정상 작동
-     *
-     * @param request HttpServletRequest (헤더에서 토큰 추출용)
-     * @return UserInfoResponseDto (username, nickname, role 포함)
+     * - 요청 헤더의 액세스 토큰에서 사용자 이름 추출 후 사용자 정보 반환
+     * - Swagger 인증 시 정상 작동
      */
     @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 정보를 반환합니다.",
             security = @SecurityRequirement(name = "Bearer Authentication"))
@@ -87,7 +88,9 @@ public class UserController {
 
     /**
      * 닉네임 수정 API
-     * PATCH /api/users/nickname
+     * - 인증된 사용자만 접근 가능
+     * - 요청 바디에 닉네임 정보 포함, 닉네임 변경 처리
+     * - 성공 시 200 OK, 실패 시 400 Bad Request 반환
      */
     @Operation(
             summary = "닉네임 수정",
@@ -95,9 +98,9 @@ public class UserController {
             security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @PatchMapping("/nickname")
-    public ResponseEntity<?> updateNickname(HttpServletRequest request,
-                                            @RequestBody UpdateNicknameRequestDto dto) {
-        String username = jwtUtil.getUsername(jwtUtil.resolveToken(request));
+    public ResponseEntity<?> updateNickname(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody UpdateNicknameRequestDto dto) {
+        if(userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String username = userDetails.getUsername();
         try {
             userService.updateNickname(username, dto.getNickname());
             return ResponseEntity.ok("닉네임이 성공적으로 변경되었습니다.");
@@ -108,7 +111,9 @@ public class UserController {
 
     /**
      * 비밀번호 수정 API
-     * PATCH /api/users/password
+     * - 인증된 사용자만 접근 가능
+     * - 요청 바디에 새 비밀번호 포함, 비밀번호 변경 처리
+     * - 성공 시 200 OK, 실패 시 400 Bad Request 반환
      */
     @Operation(
             summary = "비밀번호 수정",
@@ -116,9 +121,10 @@ public class UserController {
             security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @PatchMapping("/password")
-    public ResponseEntity<?> updatePassword(HttpServletRequest request,
+    public ResponseEntity<?> updatePassword(@AuthenticationPrincipal CustomUserDetails userDetails,
                                             @RequestBody UpdatePasswordRequestDto dto) {
-        String username = jwtUtil.getUsername(jwtUtil.resolveToken(request));
+        if(userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String username = userDetails.getUsername();
         try {
             userService.updatePassword(username, dto.getNewPassword());
             return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
@@ -129,20 +135,17 @@ public class UserController {
 
     /**
      * 회원 탈퇴 API
-     * - 현재 로그인한 사용자의 계정을 비활성화(탈퇴 처리)한다.
-     * - JWT 토큰에서 username을 추출하여 탈퇴 처리 대상 사용자로 지정
+     * - 인증된 사용자의 계정을 비활성화 처리(탈퇴)
      * - 정상 처리 시 200 OK 및 성공 메시지 반환
-     * - 예외 발생 시 400 Bad Request 및 메시지 반환
-     *
-     * @param request HTTP 요청 (JWT 토큰 포함)
-     * @return 처리 결과 메시지 응답
+     * - 실패 시 400 Bad Request 및 오류 메시지 반환
      */
     @DeleteMapping("/withdraw")
     @Operation(summary = "회원 탈퇴",
             description = "현재 로그인한 사용자의 계정을 비활성화(탈퇴 처리)합니다.",
             security = @SecurityRequirement(name = "Bearer Authentication"))
-    public ResponseEntity<?> withdrawUser(HttpServletRequest request) {
-        String username = jwtUtil.getUsername(jwtUtil.resolveToken(request));
+    public ResponseEntity<?> withdrawUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        if(userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String username = userDetails.getUsername();
         try {
             userService.withdrawUser(username);
             return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");

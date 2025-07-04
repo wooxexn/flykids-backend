@@ -38,7 +38,7 @@ public interface UserService {
      * @param username 사용자 아이디
      * @return 조회된 사용자 엔티티 (없을 경우 예외 발생 가능)
      */
-    User findByUsername(String username);
+    Optional<User> findByUsername(String username);
 
     /**
      * 현재 로그인한 사용자의 정보를 조회한다.

@@ -1,12 +1,15 @@
 package com.mtvs.flykidsbackend.mission.controller;
 
+import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
 import com.mtvs.flykidsbackend.mission.service.MissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,8 +36,20 @@ public class MissionController {
      */
     @Operation(summary = "미션 등록", description = "새로운 미션을 등록합니다.")
     @PostMapping
-    public ResponseEntity<MissionResponseDto> createMission(@RequestBody MissionRequestDto requestDto) {
-        return ResponseEntity.ok(missionService.createMission(requestDto));
+    public ResponseEntity<MissionResponseDto> createMission(
+            @RequestBody MissionRequestDto requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Long userId = userDetails.getId();
+
+        // userId를 기반으로 권한 체크하거나, 서비스 로직에 전달
+        MissionResponseDto response = missionService.createMission(requestDto, userId);
+
+        return ResponseEntity.ok(response);
     }
 
     /**
