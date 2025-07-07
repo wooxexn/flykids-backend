@@ -137,7 +137,7 @@ public class DroneMissionResultController {
      * @return MissionResponseDto - 고정된 시작 미션 정보
      */
     @Operation(summary = "게임 시작용 미션", description = "플레이어 입장 시 서버가 고정된 복합 미션을 할당합니다.")
-    @GetMapping("/missions/starting")
+    @GetMapping("/starting")
     public ResponseEntity<MissionResponseDto> getStartingMission() {
         Mission mission = missionService.getMissionEntity(22L);
         return ResponseEntity.ok(MissionResponseDto.from(mission));
