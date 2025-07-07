@@ -153,9 +153,17 @@ public class MissionServiceImpl implements MissionService {
             if (!success) allSuccess = false;
 
             // 결과 메시지 빌더에 상태 추가
-            msgBuilder.append(String.format("%s 미션 %s ",
-                    itemResult.getMissionType(),
-                    success ? "성공" : "실패"));
+            switch (itemResult.getMissionType()) {
+                case COIN -> msgBuilder.append(
+                        success ? "코인을 하나도 빠짐없이 다 모았어요! 대단해요! " : "코인을 몇 개 놓쳤지만 잘했어요! "
+                );
+                case OBSTACLE -> msgBuilder.append(
+                        success ? "장애물을 멋지게 피했어요! 집중력이 최고예요! " : "조금 부딪혔지만 끝까지 도전했어요! "
+                );
+                case PHOTO -> msgBuilder.append(
+                        success ? "사진을 정확한 위치에서 잘 찍었어요! " : "조금 위치가 달랐지만 사진을 찍으려는 노력이 멋졌어요! "
+                );
+            }
         }
 
         // DroneMissionResult 엔티티 생성 및 저장
@@ -173,7 +181,9 @@ public class MissionServiceImpl implements MissionService {
         DroneMissionResult saved = resultRepository.save(result);
 
         // 최종 안내 메시지 작성
-        String finalMsg = allSuccess ? "모든 미션 아이템 성공!" : "일부 미션 아이템 실패함.";
+        String finalMsg = allSuccess
+                ? "모든 미션을 완벽하게 해냈어요! 정말 멋진 드론 조종자예요! "
+                : "조금 어려웠지만 끝까지 포기하지 않았어요! 다음엔 더 잘할 수 있어요! ";
         finalMsg += "\n" + msgBuilder.toString();
 
         // 음성 출력용 메시지 정제
@@ -226,16 +236,17 @@ public class MissionServiceImpl implements MissionService {
      *
      * - 원본 안내 메시지에서 특수기호, 줄바꿈 등을 제거하여
      *   음성 합성에 적합한 단순하고 깔끔한 문장으로 변환한다.
-     * - 예: "성공!\n[COIN 미션] 완료!" → "성공 COIN 미션 완료"
      *
      * @param text 변환할 원본 문자열
      * @return 특수기호와 줄바꿈이 제거된 정제된 문자열
      */
     private String cleanForTTS(String text) {
-        return text.replaceAll("[^\\p{L}\\p{N}\\s]", "")
+        // 특수문자 중 . ! ? 는 허용하고 나머지만 제거
+        return text.replaceAll("[^\\p{L}\\p{N}\\s.!?]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
     }
+
 }
 
 
