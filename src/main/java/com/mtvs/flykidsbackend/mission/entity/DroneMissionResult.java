@@ -64,4 +64,14 @@ public class DroneMissionResult {
     protected void onCreate() {
         this.completedAt = LocalDateTime.now();
     }
+
+    /**
+     * 수행한 미션 엔티티 참조
+     * - 미션 ID(missionId)를 기반으로 실제 미션 정보(title 등)를 가져오기 위한 연관관계
+     * - 조회(read-only) 전용으로 사용 (insert/update는 missionId 필드로 처리)
+     * - LAZY 전략을 사용하여 필요한 경우에만 Mission 엔티티를 로딩함
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mission_id", insertable = false, updatable = false)
+    private Mission mission;
 }

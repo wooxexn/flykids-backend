@@ -1,5 +1,6 @@
 package com.mtvs.flykidsbackend.mission.entity;
 
+import com.mtvs.flykidsbackend.mission.model.MissionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -37,6 +38,10 @@ public class Mission {
      */
     @Column(nullable = false)
     private int timeLimit;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MissionType type;
 
     /**
      * 미션에 속한 여러 MissionItem 리스트
