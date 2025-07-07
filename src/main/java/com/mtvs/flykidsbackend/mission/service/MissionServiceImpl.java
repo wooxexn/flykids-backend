@@ -196,6 +196,23 @@ public class MissionServiceImpl implements MissionService {
     public Optional<MissionItem> findMissionItemById(Long id) {
         return missionItemRepository.findById(id);
     }
+
+    /**
+     * 미션 엔티티 직접 조회
+     *
+     * - 주어진 ID를 기반으로 Mission 엔티티를 조회한다.
+     * - 해당 ID의 미션이 존재하지 않으면 예외를 발생시킨다.
+     * - 컨트롤러 또는 서비스 내부에서 MissionResponseDto 변환 전에 엔티티가 직접 필요한 경우 사용된다.
+     *
+     * @param id 조회할 미션 ID
+     * @return 조회된 Mission 엔티티
+     * @throws IllegalArgumentException 미션이 존재하지 않을 경우
+     */
+    @Override
+    public Mission getMissionEntity(Long id) {
+        return missionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
+    }
 }
 
 

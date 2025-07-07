@@ -2,6 +2,7 @@ package com.mtvs.flykidsbackend.mission.controller;
 
 import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.mission.dto.*;
+import com.mtvs.flykidsbackend.mission.entity.Mission;
 import com.mtvs.flykidsbackend.mission.service.DroneMissionResultService;
 import com.mtvs.flykidsbackend.mission.service.MissionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -119,5 +120,23 @@ public class DroneMissionResultController {
 
         return ResponseEntity.ok(
                 droneMissionResultService.getPlayerStats(userDetails.getId()));
+    }
+
+    /**
+     * 고정된 시작 미션 조회 API
+     *
+     * - 게임 시작 시 항상 동일한 복합 미션을 할당하기 위한 용도
+     * - MVP 단계에서는 무작위 또는 추천 기반이 아닌, 특정 ID의 미션(예: 22번)을 고정 제공
+     * - 추후 추천 알고리즘 또는 사용자 맞춤 로직으로 확장 가능
+     *
+     * <p>예시: Unity에서 사용자가 입장할 때 호출하여 첫 미션 정보를 수신함</p>
+     *
+     * @return MissionResponseDto - 고정된 시작 미션 정보
+     */
+    @Operation(summary = "게임 시작용 미션", description = "플레이어 입장 시 서버가 고정된 복합 미션을 할당합니다.")
+    @GetMapping("/missions/starting")
+    public ResponseEntity<MissionResponseDto> getStartingMission() {
+        Mission mission = missionService.getMissionEntity(22L);
+        return ResponseEntity.ok(MissionResponseDto.from(mission));
     }
 }

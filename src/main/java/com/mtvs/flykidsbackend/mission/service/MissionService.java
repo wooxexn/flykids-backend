@@ -42,4 +42,7 @@ public interface MissionService {
 
     // MissionItem 엔티티 조회용 메서드
     Optional<MissionItem> findMissionItemById(Long id);
+
+    /** 미션 ID로 Mission 엔티티 직접 조회 */
+    Mission getMissionEntity(Long id);
 }
