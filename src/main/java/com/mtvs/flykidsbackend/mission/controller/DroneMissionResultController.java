@@ -22,7 +22,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/missions")
 @RequiredArgsConstructor
-@Tag(name = "DroneMissionResult", description = "드론 미션 결과 API")
+@Tag(
+        name = "Mission",
+        description = "드론 미션 시작, 완료, 결과 조회, 통계 등 미션 전반 관리 API"
+)
 public class DroneMissionResultController {
 
     private final MissionService missionService;
