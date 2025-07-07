@@ -161,7 +161,7 @@ public class MissionServiceImpl implements MissionService {
         // DroneMissionResult 엔티티 생성 및 저장
         DroneMissionResult result = DroneMissionResult.builder()
                 .userId(userId)
-                .missionId(missionId)
+                .mission(mission)
                 .droneId(dto.getDroneId())
                 .totalTime(itemResults.stream().mapToDouble(i -> i.getTotalTime()).sum())
                 .deviationCount(itemResults.stream().mapToInt(i -> i.getDeviationCount()).sum())

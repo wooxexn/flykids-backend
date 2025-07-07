@@ -35,7 +35,7 @@ public interface DroneMissionResultRepository extends JpaRepository<DroneMission
      * @param missionId 조회할 미션 ID
      * @return 점수 상위 10명의 미션 결과 리스트
      */
-    List<DroneMissionResult> findTop10ByMissionIdOrderByScoreDesc(Long missionId);
+    List<DroneMissionResult> findTop10ByMission_IdOrderByScoreDesc(Long missionId);
 
     /**
      * 특정 유저의 평균 점수 조회

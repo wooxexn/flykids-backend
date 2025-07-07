@@ -33,9 +33,6 @@ public class DroneMissionResult {
     /** 미션 수행한 유저 ID */
     private Long userId;
 
-    /** 수행한 미션 ID */
-    private Long missionId;
-
     /** 사용한 드론 ID (기본 드론 1종만 사용하더라도 기록용 필드 유지) */
     private String droneId;
 
@@ -67,11 +64,11 @@ public class DroneMissionResult {
 
     /**
      * 수행한 미션 엔티티 참조
-     * - 미션 ID(missionId)를 기반으로 실제 미션 정보(title 등)를 가져오기 위한 연관관계
-     * - 조회(read-only) 전용으로 사용 (insert/update는 missionId 필드로 처리)
-     * - LAZY 전략을 사용하여 필요한 경우에만 Mission 엔티티를 로딩함
+     * - 해당 결과가 어떤 미션에 대한 것인지 나타냄
+     * - 미션 ID는 mission.getId()를 통해 조회 가능
+     * - LAZY 전략을 사용하여 실제 Mission 정보(title 등)는 필요 시에만 로딩됨
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mission_id", insertable = false, updatable = false)
+    @JoinColumn(name = "mission_id")
     private Mission mission;
 }
