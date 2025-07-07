@@ -153,7 +153,7 @@ public class MissionServiceImpl implements MissionService {
             if (!success) allSuccess = false;
 
             // 결과 메시지 빌더에 상태 추가
-            msgBuilder.append(String.format("[%s 미션] %s\n",
+            msgBuilder.append(String.format("%s 미션 %s ",
                     itemResult.getMissionType(),
                     success ? "성공" : "실패"));
         }
@@ -176,6 +176,11 @@ public class MissionServiceImpl implements MissionService {
         String finalMsg = allSuccess ? "모든 미션 아이템 성공!" : "일부 미션 아이템 실패함.";
         finalMsg += "\n" + msgBuilder.toString();
 
+        // 음성 출력용 메시지 정제
+        // - 특수기호, 줄바꿈 등을 제거한 버전
+        // - AI 음성 합성(TTS) 시스템에서 오류 없이 읽히도록 가공
+        String cleanMsg = cleanForTTS(finalMsg);
+
         // 응답 DTO 반환
         return MissionCompleteResponseDto.builder()
                 .score(totalScore)
@@ -183,9 +188,11 @@ public class MissionServiceImpl implements MissionService {
                 .deviationCount(saved.getDeviationCount())
                 .collisionCount(saved.getCollisionCount())
                 .success(allSuccess)
-                .message(finalMsg)
+                .message(cleanMsg)
+                .rawMessage(finalMsg)
                 .build();
     }
+
 
     @Override
     public Optional<Mission> findById(Long id) {
@@ -212,6 +219,22 @@ public class MissionServiceImpl implements MissionService {
     public Mission getMissionEntity(Long id) {
         return missionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
+    }
+
+    /**
+     * TTS(Text-To-Speech)용 문자열 정제 함수
+     *
+     * - 원본 안내 메시지에서 특수기호, 줄바꿈 등을 제거하여
+     *   음성 합성에 적합한 단순하고 깔끔한 문장으로 변환한다.
+     * - 예: "성공!\n[COIN 미션] 완료!" → "성공 COIN 미션 완료"
+     *
+     * @param text 변환할 원본 문자열
+     * @return 특수기호와 줄바꿈이 제거된 정제된 문자열
+     */
+    private String cleanForTTS(String text) {
+        return text.replaceAll("[^\\p{L}\\p{N}\\s]", "")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 }
 

@@ -29,6 +29,15 @@ public class MissionCompleteResponseDto {
     @Schema(description = "미션 성공 여부", example = "true")
     private boolean success;
 
-    @Schema(description = "TTS 피드백용 문장", example = "미션 완료! 90점입니다. 2회 이탈했습니다.")
+    @Schema(
+            description = "TTS용 문장 (줄바꿈 및 특수기호 제거됨, 음성 생성에 적합한 형식)",
+            example = "모든 미션 아이템 성공 COIN 미션 성공 OBSTACLE 미션 성공 PHOTO 미션 성공"
+    )
     private String message;
+
+    @Schema(
+            description = "원본 메시지 (줄바꿈 및 특수기호 포함, 사람이 읽기 좋은 형식)",
+            example = "모든 미션 아이템 성공!\n[COIN 미션] 성공\n[OBSTACLE 미션] 성공\n[PHOTO 미션] 성공"
+    )
+    private String rawMessage;
 }
