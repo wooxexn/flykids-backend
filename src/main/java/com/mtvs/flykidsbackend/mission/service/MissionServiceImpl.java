@@ -103,11 +103,12 @@ public class MissionServiceImpl implements MissionService {
 
     /**
      * 미션 완료 처리
-     * - 미션 아이템별 결과를 받아 점수를 계산하고 상태(SUCCESS/FAIL) 판단
-     * - 결과를 DroneMissionResult 엔티티로 저장
-     * - 최종 점수, 소요 시간, 이탈/충돌 횟수, 미션 상태, 안내 메시지 반환
+     * - 각 미션 아이템 결과로 점수를 계산하고 SUCCESS/FAIL 상태를 판단한다
+     *   (모든 아이템 성공 시 SUCCESS, 하나라도 실패하면 FAIL).
+     * - 결과를 DroneMissionResult 엔티티로 저장한다.
+     * - 최종 점수, 소요 시간, 이탈/충돌 횟수, 상태, 안내 메시지를 반환한다.
      *
-     * @param userId    완료한 유저 ID (JWT 토큰에서 추출)
+     * @param userId    완료한 유저 ID (JWT 토큰)
      * @param missionId 완료한 미션 ID
      * @param dto       미션 아이템별 결과 데이터 DTO
      * @return 미션 완료 결과 응답 DTO
@@ -124,7 +125,7 @@ public class MissionServiceImpl implements MissionService {
         }
 
         int totalScore = 0;
-        boolean allSuccess = true;
+        int successCount = 0;
         StringBuilder msgBuilder = new StringBuilder();
 
 
@@ -149,7 +150,7 @@ public class MissionServiceImpl implements MissionService {
             boolean success = scoreCalculator.isMissionSuccess(itemResult.getMissionType(), itemResult, missionItem);
 
             totalScore += score;
-            if (!success) allSuccess = false;
+            if (success) successCount++;
 
             // 결과 메시지 빌더에 상태 추가
             switch (itemResult.getMissionType()) {
@@ -174,15 +175,20 @@ public class MissionServiceImpl implements MissionService {
                 .deviationCount(itemResults.stream().mapToInt(i -> i.getDeviationCount()).sum())
                 .collisionCount(itemResults.stream().mapToInt(i -> i.getCollisionCount()).sum())
                 .score(totalScore)
-                .status(allSuccess ? MissionResultStatus.SUCCESS : MissionResultStatus.FAIL)
+                .status(successCount == mission.getMissionItems().size()
+                        ? MissionResultStatus.SUCCESS
+                        : MissionResultStatus.FAIL)
                 .build();
 
         DroneMissionResult saved = resultRepository.save(result);
 
         // 최종 안내 메시지 작성
+        boolean allSuccess = successCount == mission.getMissionItems().size();
+
         String finalMsg = allSuccess
                 ? "모든 미션을 완벽하게 해냈어요! 정말 멋진 드론 조종자예요! "
                 : "조금 어려웠지만 끝까지 포기하지 않았어요! 다음엔 더 잘할 수 있어요! ";
+
         finalMsg += "\n" + msgBuilder.toString();
 
         // 음성 출력용 메시지 정제
