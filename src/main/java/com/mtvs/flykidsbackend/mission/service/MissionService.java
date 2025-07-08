@@ -45,6 +45,4 @@ public interface MissionService {
 
     /** 미션 ID로 Mission 엔티티 직접 조회 */
     Mission getMissionEntity(Long id);
-
-    void abortMission(Long missionId, Long userId);
 }

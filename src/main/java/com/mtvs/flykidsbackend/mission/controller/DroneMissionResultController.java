@@ -8,12 +8,14 @@ import com.mtvs.flykidsbackend.mission.service.MissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 미션 결과 관련 API 컨트롤러
@@ -141,5 +143,32 @@ public class DroneMissionResultController {
     public ResponseEntity<MissionResponseDto> getStartingMission() {
         Mission mission = missionService.getMissionEntity(22L);
         return ResponseEntity.ok(MissionResponseDto.from(mission));
+    }
+
+    /**
+     * [POST] 미션 중단(포기) 처리
+     * - 진행 중인 복합‧단일 미션을 사용자가 포기했을 때 호출
+     * - DroneMissionResult.status = ABORT 로 저장
+     *
+     * @param id           중단할 미션 ID
+     * @param userDetails  JWT 인증 정보
+     * @return 중단 완료 메시지
+     */
+    @Operation(summary = "미션 중단(포기)", description = "미션을 중단(포기)합니다.")
+    @PostMapping("/{id}/abort")
+    public ResponseEntity<Map<String, String>> abortMission(
+            @PathVariable("id") Long id,
+            @RequestBody DroneAbortRequestDto requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        droneMissionResultService.abortMission(id, userDetails.getId(), requestDto.getDroneId());
+
+        return ResponseEntity.ok(
+                Map.of("message", "미션을 중단했습니다. 다음에 다시 도전해보세요!")
+        );
     }
 }

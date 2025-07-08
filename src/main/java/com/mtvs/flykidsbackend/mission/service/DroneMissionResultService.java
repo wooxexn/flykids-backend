@@ -11,6 +11,7 @@ import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.mtvs.flykidsbackend.mission.model.MissionResultStatus;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -64,6 +65,7 @@ public class DroneMissionResultService {
                     );
 
                     boolean success = isMissionSuccess(missionItem.getType(), itemResult, missionItem);
+                    MissionResultStatus status = success ? MissionResultStatus.SUCCESS : MissionResultStatus.FAIL;  // ✅ 선언 추가
 
                     return resultRepository.save(
                             DroneMissionResult.builder()
@@ -74,7 +76,7 @@ public class DroneMissionResultService {
                                     .deviationCount(itemResult.getDeviationCount())
                                     .collisionCount(itemResult.getCollisionCount())
                                     .score(score)
-                                    .success(success)
+                                    .status(status)
                                     .build()
                     );
                 })
@@ -168,7 +170,7 @@ public class DroneMissionResultService {
         // 같은 mission.id를 기준으로 COIN/OBSTACLE/PHOTO 모두 success=true일 때 1세트로 간주
         Map<Long, Long> successCountByMission =
                 results.stream()
-                        .filter(DroneMissionResult::isSuccess)
+                        .filter(r -> r.getStatus() == MissionResultStatus.SUCCESS)
                         .collect(Collectors.groupingBy(r -> r.getMission().getId(), Collectors.counting()));
 
         int successfulSets = (int) successCountByMission.values().stream()
@@ -186,5 +188,37 @@ public class DroneMissionResultService {
                 .averageScore(Math.round(averageScore * 10) / 10.0)
                 .totalFlightTime(Math.round(totalFlightSec * 10) / 10.0)
                 .build();
+    }
+
+    /**
+     * 미션 중단 처리
+     * 유저가 미션을 중단(포기)했을 때 기본값으로 결과 데이터를 저장한다.
+     *
+     * @param missionId 중단된 미션의 ID
+     * @param userId    미션을 중단한 사용자 ID
+     * @param droneId   사용한 드론의 ID
+     * @throws IllegalArgumentException 미션이 존재하지 않을 경우 예외 발생
+     */
+    @Transactional
+    public void abortMission(Long missionId, Long userId, String droneId) {
+
+        // 1. 미션 존재 여부 확인
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
+
+        // 2. 중단된 결과 생성 (성공 여부 false, 점수/시간/이탈/충돌 모두 0으로 초기화)
+        DroneMissionResult result = DroneMissionResult.builder()
+                .userId(userId)
+                .droneId(droneId)
+                .totalTime(0)
+                .deviationCount(0)
+                .collisionCount(0)
+                .score(0)
+                .status(MissionResultStatus.ABORT)
+                .mission(mission)
+                .build();
+
+        // 3. 결과 저장
+        resultRepository.save(result);
     }
 }

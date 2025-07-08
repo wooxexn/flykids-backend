@@ -116,30 +116,5 @@ public class MissionController {
         return ResponseEntity.ok(missionService.getAllMissions());
     }
 
-    /**
-     * [POST] 미션 중단(포기) 처리
-     * - 진행 중인 복합‧단일 미션을 사용자가 포기했을 때 호출
-     * - DroneMissionResult.status = ABORT 로 저장
-     *
-     * @param id           중단할 미션 ID
-     * @param userDetails  JWT 인증 정보
-     * @return 중단 완료 메시지
-     */
-    @Operation(summary = "미션 중단(포기)", description = "미션을 중단(포기)합니다.")
-    @PostMapping("/{id}/abort")
-    public ResponseEntity<Map<String, String>> abortMission(
-            @PathVariable("id") Long id,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        missionService.abortMission(id, userDetails.getId());
-
-        return ResponseEntity.ok(
-                Map.of("message", "미션을 중단했습니다. 다음에 다시 도전해보세요!")
-        );
-    }
 }
 

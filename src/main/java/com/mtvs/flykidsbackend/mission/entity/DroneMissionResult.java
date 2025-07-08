@@ -49,9 +49,6 @@ public class DroneMissionResult {
     /** 최종 점수 (0~100 범위 예상) */
     private int score;
 
-    /** 미션 성공 여부 (true: 성공, false: 실패) */
-    private boolean success;
-
     /** 미션 완료 시각 */
     private LocalDateTime completedAt;
 
@@ -65,9 +62,6 @@ public class DroneMissionResult {
     @PrePersist
     protected void onCreate() {
         this.completedAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = this.success ? MissionResultStatus.SUCCESS : MissionResultStatus.FAIL;
-        }
     }
 
     /**

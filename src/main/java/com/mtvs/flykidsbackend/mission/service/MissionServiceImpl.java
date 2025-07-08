@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * 미션 관리 서비스 구현체
- * - 미션 등록, 수정, 삭제, 조회 기능을 처리한다
+ * - 미션 등록, 수정, 삭제, 조회, 중단 기능을 처리한다
  * - Controller와 Repository 사이의 비즈니스 로직을 담당한다
  */
 @Service
@@ -31,9 +31,7 @@ public class MissionServiceImpl implements MissionService {
     private final MissionRepository missionRepository;
     private final MissionItemRepository missionItemRepository;
     private final DroneMissionResultRepository resultRepository;
-    private final DroneMissionResultService resultService;
     private final ScoreCalculator scoreCalculator;
-    private final DroneMissionResultRepository droneMissionResultRepository;
 
     @Override
     @Transactional
@@ -106,9 +104,9 @@ public class MissionServiceImpl implements MissionService {
 
     /**
      * 미션 완료 처리
-     * - 미션 아이템별 결과를 받아 점수를 계산하고 성공 여부 판단
+     * - 미션 아이템별 결과를 받아 점수를 계산하고 상태(SUCCESS/FAIL) 판단
      * - 결과를 DroneMissionResult 엔티티로 저장
-     * - 최종 점수, 소요 시간, 이탈/충돌 횟수, 성공 여부, 안내 메시지 반환
+     * - 최종 점수, 소요 시간, 이탈/충돌 횟수, 미션 상태, 안내 메시지 반환
      *
      * @param userId    완료한 유저 ID (JWT 토큰에서 추출)
      * @param missionId 완료한 미션 ID
@@ -177,7 +175,7 @@ public class MissionServiceImpl implements MissionService {
                 .deviationCount(itemResults.stream().mapToInt(i -> i.getDeviationCount()).sum())
                 .collisionCount(itemResults.stream().mapToInt(i -> i.getCollisionCount()).sum())
                 .score(totalScore)
-                .success(allSuccess)
+                .status(allSuccess ? MissionResultStatus.SUCCESS : MissionResultStatus.FAIL)
                 .build();
 
         DroneMissionResult saved = resultRepository.save(result);
@@ -247,30 +245,6 @@ public class MissionServiceImpl implements MissionService {
         return text.replaceAll("[^\\p{L}\\p{N}\\s.!?]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
-    }
-
-    @Override
-    @Transactional
-    public void abortMission(Long missionId, Long userId) {
-
-        // 1) 미션 존재 여부 검증
-        Mission mission = missionRepository.findById(missionId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
-
-        // 2) 결과 엔티티 저장
-        DroneMissionResult result = DroneMissionResult.builder()
-                .userId(userId)
-                .droneId("1")             // 기본 드론 ID 또는 파라미터
-                .totalTime(0)             // 중단 시 0 또는 클라이언트 전달값
-                .deviationCount(0)
-                .collisionCount(0)
-                .score(0)
-                .success(false)
-                .status(MissionResultStatus.ABORT)
-                .mission(mission)
-                .build();
-
-        droneMissionResultRepository.save(result);
     }
 
 }
