@@ -185,9 +185,28 @@ public class MissionServiceImpl implements MissionService {
         // 최종 안내 메시지 작성
         boolean allSuccess = successCount == mission.getMissionItems().size();
 
-        String finalMsg = allSuccess
-                ? "모든 미션을 완벽하게 해냈어요! 정말 멋진 드론 조종자예요! "
-                : "조금 어려웠지만 끝까지 포기하지 않았어요! 다음엔 더 잘할 수 있어요! ";
+        // 점수 구간별 세부 피드백 문장 생성 (성공일 때는 기본 멘트만 사용)
+        String baseMsg = "";
+        if (!allSuccess) {
+            if (totalScore >= 90) {
+                baseMsg = "점수는 높지만 몇 가지 미션을 실패했어요. 다음엔 꼭 성공해요!";
+            } else if (totalScore >= 70) {
+                baseMsg = "아쉬웠지만 많이 노력했어요! 다음엔 꼭 성공해요!";
+            } else {
+                baseMsg = "조금 힘들었지만 포기하지 않았어요! 다시 도전해봐요!";
+            }
+        }
+
+        // 기본 멘트 (성공/실패 구분)
+        String baseSuccessMsg = allSuccess
+                ? "모든 미션을 완벽하게 해냈어요! 정말 멋진 드론 조종자예요!"
+                : "조금 어려웠지만 끝까지 포기하지 않았어요! 다음엔 더 잘할 수 있어요!";
+
+        // 최종 멘트 조립
+        String finalMsg = baseSuccessMsg;
+        if (!baseMsg.isEmpty()) {
+            finalMsg += " " + baseMsg;
+        }
 
         finalMsg += "\n" + msgBuilder.toString();
 
