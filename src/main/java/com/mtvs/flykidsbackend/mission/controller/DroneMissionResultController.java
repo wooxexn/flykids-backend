@@ -154,7 +154,7 @@ public class DroneMissionResultController {
      * @param userDetails  JWT 인증 정보
      * @return 중단 완료 메시지
      */
-    @Operation(summary = "미션 중단(포기)", description = "미션을 중단(포기)합니다.")
+    @Operation(summary = "미션 중단(포기)", description = "진행 중인 미션을 사용자가 포기할 때 호출하며, 상태를 ABORT로 저장하여 미션을 취소 처리합니다.")
     @PostMapping("/{id}/abort")
     public ResponseEntity<Map<String, String>> abortMission(
             @PathVariable("id") Long id,
