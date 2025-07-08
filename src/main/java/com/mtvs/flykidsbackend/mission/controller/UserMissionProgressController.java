@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/user-mission-progress")
 @RequiredArgsConstructor
-@Tag(name = "UserMissionProgress", description = "유저 미션 진행 상태 API")
+@Tag(name = "유저 미션 진행", description = "유저별 미션 단계별 진행 상태 조회 및 업데이트 API")
 public class UserMissionProgressController {
 
     private final UserMissionProgressService progressService;
@@ -41,7 +41,11 @@ public class UserMissionProgressController {
      * @return 해당 유저의 미션 단계별 진행 상태 리스트 반환
      */
     @GetMapping("/missions/{missionId}")
-    @Operation(summary = "유저 미션 진행 상태 조회", description = "특정 미션에 대한 유저의 단계별 진행 상태를 조회합니다.")
+    @Operation(
+            summary = "유저 미션 진행 상태 조회",
+            description = "로그인한 유저가 특정 미션에 대해 각 단계별 진행 상태를 조회할 수 있는 API입니다. " +
+                    "진행 상태 리스트를 반환하여 클라이언트에서 단계별 미션 상태를 보여줍니다."
+    )
     public ResponseEntity<List<UserMissionProgressResponseDto>> getProgressList(
             @PathVariable("missionId") Long missionId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -80,7 +84,11 @@ public class UserMissionProgressController {
      * @return 상태 코드 204 (No Content)
      */
     @PostMapping("/missions/{missionId}/items/{missionItemId}")
-    @Operation(summary = "유저 미션 단계 진행 상태 업데이트", description = "특정 미션 단계의 진행 상태를 업데이트합니다.")
+    @Operation(
+            summary = "유저 미션 단계 진행 상태 업데이트",
+            description = "특정 미션의 특정 단계에 대한 유저 진행 상태를 업데이트합니다. " +
+                    "유저가 미션 단계의 상태를 변경할 때 호출하며, 성공 시 내용 없이 204 상태 코드를 반환합니다."
+    )
     public ResponseEntity<Void> updateProgress(
             @PathVariable("missionId") Long missionId,
             @PathVariable("missionItemId") Long missionItemId,

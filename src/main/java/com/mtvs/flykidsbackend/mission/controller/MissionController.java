@@ -22,7 +22,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/missions")
 @RequiredArgsConstructor
-@Tag(name = "Mission", description = "미션 관리 API")
+@Tag(
+        name = "Mission",
+        description = "미션 등록, 수정, 삭제, 조회 등 미션 관리에 필요한 모든 API를 제공합니다."
+)
 public class MissionController {
 
     private final MissionService missionService;
@@ -35,7 +38,12 @@ public class MissionController {
      * @param requestDto 등록 요청 DTO
      * @return 등록된 미션 정보
      */
-    @Operation(summary = "미션 등록", description = "새로운 미션을 등록합니다.")
+    @Operation(
+            summary = "미션 등록",
+            description = "사용자가 새로운 미션을 등록할 때 호출합니다. " +
+                    "미션 제목, 제한 시간, 유형 정보를 받아 미션 데이터를 생성 및 저장합니다. " +
+                    "이 API를 통해 관리자는 새로운 미션을 추가할 수 있습니다."
+    )
     @PostMapping
     public ResponseEntity<MissionResponseDto> createMission(
             @RequestBody MissionRequestDto requestDto,
@@ -61,7 +69,11 @@ public class MissionController {
      * @param requestDto 수정 요청 DTO
      * @return 수정된 미션 정보
      */
-    @Operation(summary = "미션 수정", description = "기존 미션 정보를 수정합니다.")
+    @Operation(
+            summary = "미션 수정",
+            description = "관리자가 기존에 등록된 미션 정보를 수정할 때 호출합니다. " +
+                    "미션 제목, 제한 시간, 미션 아이템 등을 변경하여 최신 상태로 유지하기 위해 사용됩니다."
+    )
     @PatchMapping("/{id}")
     public ResponseEntity<MissionResponseDto> updateMission(
             @PathVariable("id") Long id,
@@ -77,7 +89,11 @@ public class MissionController {
      * @param id 삭제할 미션 ID
      * @return HTTP 204 No Content
      */
-    @Operation(summary = "미션 삭제", description = "미션을 삭제합니다.")
+    @Operation(
+            summary = "미션 삭제",
+            description = "관리자가 더 이상 필요하지 않은 미션을 삭제할 때 호출합니다. " +
+                    "미션을 시스템에서 완전히 제거하여 관리 효율성을 높이기 위해 사용됩니다."
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMission(@PathVariable("id") Long id) {
         missionService.deleteMission(id);
@@ -91,6 +107,11 @@ public class MissionController {
      * @param id 조회할 미션 ID
      * @return 미션 상세 정보
      */
+    @Operation(
+            summary = "미션 단건 조회",
+            description = "관리자 또는 서비스가 특정 미션의 상세 정보를 조회할 때 호출합니다. " +
+                    "미션의 제목, 제한 시간, 아이템 정보 등을 확인하여 화면에 표시하거나 내부 처리에 활용하기 위해 사용됩니다."
+    )
     @GetMapping("/{id}")
     public ResponseEntity<?> getMission(@PathVariable("id") Long id) {
         try {
@@ -110,7 +131,11 @@ public class MissionController {
      *
      * @return 미션 리스트
      */
-    @Operation(summary = "미션 전체 목록 조회", description = "등록된 모든 미션 목록을 조회합니다.")
+    @Operation(
+            summary = "미션 전체 목록 조회",
+            description = "관리자나 서비스가 등록된 모든 미션의 목록을 한 번에 조회할 때 호출합니다. " +
+                    "새로운 미션 추가, 수정, 삭제 시 전체 목록을 최신 상태로 유지하거나 사용자에게 보여주기 위해 사용됩니다."
+    )
     @GetMapping
     public ResponseEntity<List<MissionResponseDto>> getAllMissions() {
         return ResponseEntity.ok(missionService.getAllMissions());

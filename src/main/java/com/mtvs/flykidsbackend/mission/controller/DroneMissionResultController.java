@@ -26,7 +26,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Tag(
         name = "Mission",
-        description = "드론 미션 시작, 완료, 결과 조회, 통계 등 미션 전반 관리 API"
+        description = "드론 미션과 관련된 모든 기능을 관리하는 API입니다. " +
+                "미션 시작, 완료 처리, 결과 조회, 통계 확인 등 미션 전반에 관한 작업을 담당합니다. " +
+                "게임 플레이 중 미션 데이터의 흐름을 원활하게 관리하기 위해 설계되었습니다."
 )
 public class DroneMissionResultController {
 
@@ -43,7 +45,13 @@ public class DroneMissionResultController {
      * @return 점수 및 TTS 피드백 메시지를 포함한 응답
      */
     @PostMapping("/{missionId}/complete")
-    @Operation(summary = "미션 완료 처리", description = "결과 저장 후 점수 및 TTS 피드백 메시지를 반환합니다.")
+    @Operation(
+            summary = "미션 완료 처리",
+            description = "플레이어가 미션을 완료했을 때 호출합니다. " +
+                    "미션 결과를 서버에 저장하고, 점수를 계산하며, " +
+                    "TTS 음성 피드백 메시지를 포함한 결과를 반환합니다. " +
+                    "이 API를 통해 미션 수행 결과를 기록하고 사용자에게 피드백을 제공합니다."
+    )
     public ResponseEntity<MissionCompleteResponseDto> completeMission(
             @PathVariable("missionId") Long missionId,
             @RequestBody DroneMissionResultRequestDto requestDto,
@@ -75,7 +83,13 @@ public class DroneMissionResultController {
      * @return 유저의 미션 수행 기록 리스트
      */
     @GetMapping("/users/me/history")
-    @Operation(summary = "내 미션 수행 이력 조회", description = "로그인한 사용자의 미션 결과 기록 목록을 반환합니다.")
+    @Operation(
+            summary = "로그인한 유저의 미션 수행 이력 조회",
+            description = "JWT 인증을 통해 현재 로그인한 사용자의 정보를 확인한 후, " +
+                    "해당 사용자가 완료한 모든 미션 결과 기록을 조회합니다. " +
+                    "결과에는 미션 이름, 점수, 소요 시간, 이탈/충돌 횟수, 완료 시간 등이 포함됩니다. " +
+                    "사용자가 자신의 미션 학습 진행 상황과 성과를 확인할 때 사용합니다."
+    )
     public ResponseEntity<List<MissionHistoryResponseDto>> getMyMissionHistory(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
@@ -94,7 +108,12 @@ public class DroneMissionResultController {
      * @return 리더보드 정보 리스트
      */
     @GetMapping("/leaderboard")
-    @Operation(summary = "리더보드 조회", description = "미션 ID 기준으로 상위 점수 유저 TOP10을 조회합니다.")
+    @Operation(
+            summary = "특정 미션 리더보드 조회",
+            description = "지정한 미션 ID에 대해 점수 상위 10명의 유저 정보를 조회합니다. " +
+                    "리더보드를 통해 경쟁 상황을 보여주고, 닉네임, 점수, 소요 시간, 완료 시간 등의 정보를 포함하여 " +
+                    "사용자의 성과를 비교할 수 있도록 지원합니다."
+    )
     public ResponseEntity<List<LeaderboardEntryDto>> getLeaderboard(
             @RequestParam Long missionId
     ) {
@@ -118,8 +137,12 @@ public class DroneMissionResultController {
      * @return 유저 통계 정보 {@link PlayerPerformanceStatsDto}
      */
     @GetMapping("/users/me/stats")
-    @Operation(summary = "개인 통계 조회",
-            description = "총 시도, 세트 승리 횟수, 평균 점수, 총 비행 시간을 반환합니다.")
+    @Operation(
+            summary = "개인 미션 통계 조회",
+            description = "현재 로그인한 사용자의 미션 통계 정보를 조회합니다. " +
+                    "총 미션 시도 횟수, 미션 세트 성공 횟수, 평균 점수, 누적 비행 시간을 포함하여 " +
+                    "유저의 학습 성과와 진행 상황을 정량적으로 파악할 수 있도록 지원합니다."
+    )
     public ResponseEntity<PlayerPerformanceStatsDto> getMyStats(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
@@ -138,7 +161,12 @@ public class DroneMissionResultController {
      *
      * @return MissionResponseDto - 고정된 시작 미션 정보
      */
-    @Operation(summary = "게임 시작용 미션", description = "플레이어 입장 시 서버가 고정된 복합 미션을 할당합니다.")
+    @Operation(
+            summary = "게임 시작용 미션 조회",
+            description = "플레이어가 게임에 입장할 때 호출합니다. " +
+                    "서버는 항상 동일한 복합 미션(예: ID 22번)을 할당하여 학습용 미션을 제공합니다. " +
+                    "이는 일관된 미션 환경을 유지하고, AI 피드백 및 시나리오 기반 음성 안내 설계에 도움을 줍니다."
+    )
     @GetMapping("/starting")
     public ResponseEntity<MissionResponseDto> getStartingMission() {
         Mission mission = missionService.getMissionEntity(22L);
@@ -154,7 +182,12 @@ public class DroneMissionResultController {
      * @param userDetails  JWT 인증 정보
      * @return 중단 완료 메시지
      */
-    @Operation(summary = "미션 중단(포기)", description = "진행 중인 미션을 사용자가 포기할 때 호출하며, 상태를 ABORT로 저장하여 미션을 취소 처리합니다.")
+    @Operation(
+            summary = "미션 중단(포기)",
+            description = "사용자가 현재 진행 중인 미션을 중단하거나 포기할 때 호출합니다. " +
+                    "미션 상태가 'ABORT'로 변경되어 미션이 취소 처리되며, " +
+                    "이를 통해 중단된 미션 상태를 저장하고, 사용자는 이후에 다시 도전할 수 있습니다."
+    )
     @PostMapping("/{id}/abort")
     public ResponseEntity<Map<String, String>> abortMission(
             @PathVariable("id") Long id,
