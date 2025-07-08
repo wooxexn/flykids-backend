@@ -241,9 +241,40 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    /**
+     * 사용자 ID로 사용자 조회
+     * - 주어진 사용자 ID로 DB에서 사용자 정보를 조회한다.
+     * - 존재하지 않을 경우 Optional.empty() 반환
+     *
+     * @param id 조회할 사용자 ID
+     * @return Optional<User> 조회된 사용자 (없을 경우 empty 반환)
+     */
     @Override
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
+    }
+
+    /**
+     * 아이디 사용 가능 여부 확인
+     * - 입력된 아이디(username)의 형식이 올바른지 검증
+     * - 현재 ACTIVE 상태의 사용자 중 동일 아이디 존재 여부를 조회하여 사용 가능 여부 반환
+     *
+     * @param username 확인할 아이디
+     * @return true: 사용 가능 / false: 이미 사용 중
+     * @throws IllegalArgumentException 아이디 형식이 잘못된 경우 (길이 또는 정규식 불일치)
+     */
+    @Override
+    public boolean checkUsernameAvailable(String username) {
+
+        // 1. 아이디 형식 유효성 검사 (5~20자, 영문자+숫자만 허용)
+        if (username.length() < 5 || username.length() > 20
+                || !username.matches("^[a-zA-Z0-9]+$")) {
+            throw new IllegalArgumentException("아이디 형식이 올바르지 않습니다.");
+        }
+
+        // 2. 현재 사용 중인 ACTIVE 상태의 동일 아이디가 존재하는지 확인
+        return !userRepository.existsByUsernameAndStatus(
+                username, User.UserStatus.ACTIVE);
     }
 
 }

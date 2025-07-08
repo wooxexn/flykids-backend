@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import com.mtvs.flykidsbackend.user.dto.UpdatePasswordRequestDto;
 import com.mtvs.flykidsbackend.user.dto.UpdateNicknameRequestDto;
 
+import java.util.Map;
+
 @Tag(
         name = "사용자",
         description = "회원가입, 로그인, 마이페이지(정보 조회/닉네임·비밀번호 수정/회원 탈퇴) API"
@@ -152,6 +154,21 @@ public class UserController {
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    /**
+     * 아이디 중복 확인 API
+     * - 쿼리 파라미터 ?username=aaa
+     * - 사용 가능하면 {"available": true} 반환
+     */
+    @Operation(summary = "아이디 중복 확인",
+            description = "회원가입 전에 아이디가 사용 가능한지 확인합니다.")
+    @GetMapping("/check-id")
+    public ResponseEntity<Map<String, Boolean>> checkIdDuplicate(
+            @RequestParam String username) {
+
+        boolean available = userService.checkUsernameAvailable(username);
+        return ResponseEntity.ok(Map.of("available", available));
     }
 
 }

@@ -63,4 +63,15 @@ public interface UserService {
      * @return Optional<User>
      */
     Optional<User> findById(Long id);
+
+    /**
+     * 아이디 중복 여부 확인
+     * - 주어진 아이디가 사용 가능한지 확인한다.
+     * - 형식이 유효하지 않으면 예외 발생
+     * - ACTIVE 상태의 사용자 중 중복 여부를 검사
+     *
+     * @param username 중복 확인할 사용자 아이디
+     * @return 사용 가능하면 true, 이미 사용 중이면 false
+     */
+    boolean checkUsernameAvailable(String username);
 }
