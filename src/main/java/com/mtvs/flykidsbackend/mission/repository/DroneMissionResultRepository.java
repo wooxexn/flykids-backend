@@ -1,6 +1,7 @@
 package com.mtvs.flykidsbackend.mission.repository;
 
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
+import com.mtvs.flykidsbackend.mission.model.MissionResultStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,9 @@ public interface DroneMissionResultRepository extends JpaRepository<DroneMission
      */
     List<DroneMissionResult> findByUserId(Long userId);
 
+
+    List<DroneMissionResult> findByUserIdAndStatusNot(Long userId, MissionResultStatus status);
+
     /**
      * 특정 미션에 대한 모든 유저의 결과 조회 (리더보드 등에서 활용)
      */
@@ -36,6 +40,9 @@ public interface DroneMissionResultRepository extends JpaRepository<DroneMission
      * @return 점수 상위 10명의 미션 결과 리스트
      */
     List<DroneMissionResult> findTop10ByMission_IdOrderByScoreDesc(Long missionId);
+
+    List<DroneMissionResult> findTop10ByMission_IdAndStatusOrderByScoreDesc(
+            Long missionId, MissionResultStatus status);
 
     /**
      * 특정 유저의 평균 점수 조회
@@ -54,4 +61,5 @@ public interface DroneMissionResultRepository extends JpaRepository<DroneMission
      */
     @Query("SELECT SUM(r.totalTime) FROM DroneMissionResult r WHERE r.userId = :userId")
     Double findTotalFlightTimeByUserId(@Param("userId") Long userId);
+
 }

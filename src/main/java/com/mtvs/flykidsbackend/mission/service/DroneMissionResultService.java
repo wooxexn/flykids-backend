@@ -10,6 +10,7 @@ import com.mtvs.flykidsbackend.mission.repository.*;
 import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.mtvs.flykidsbackend.mission.model.MissionResultStatus;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -112,7 +113,9 @@ public class DroneMissionResultService {
      * @return 미션 이력 DTO 리스트
      */
     public List<MissionHistoryResponseDto> getMyMissionHistory(Long userId) {
-        return resultRepository.findByUserId(userId).stream()
+        return resultRepository
+                .findByUserIdAndStatusNot(userId, MissionResultStatus.ABORT)
+                .stream()
                 .map(r -> MissionHistoryResponseDto.builder()
                         .missionId(r.getMission().getId())
                         .missionName(r.getMission().getTitle())
@@ -134,10 +137,10 @@ public class DroneMissionResultService {
      */
     public List<LeaderboardEntryDto> getTopRankers(Long missionId) {
         List<DroneMissionResult> results =
-                resultRepository.findTop10ByMission_IdOrderByScoreDesc(missionId);
+                resultRepository.findTop10ByMission_IdAndStatusOrderByScoreDesc(
+                        missionId, MissionResultStatus.SUCCESS);
 
         int[] rank = {1};
-
         return results.stream()
                 .map(r -> LeaderboardEntryDto.builder()
                         .rank(rank[0]++)
@@ -158,7 +161,8 @@ public class DroneMissionResultService {
      */
     public PlayerPerformanceStatsDto getPlayerStats(Long userId) {
 
-        List<DroneMissionResult> results = resultRepository.findByUserId(userId);
+        List<DroneMissionResult> results =
+                resultRepository.findByUserIdAndStatusNot(userId, MissionResultStatus.ABORT);
         int totalAttempts = results.size();
 
         // 같은 mission.id를 기준으로 COIN/OBSTACLE/PHOTO 모두 success=true일 때 1세트로 간주

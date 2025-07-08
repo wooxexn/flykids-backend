@@ -7,6 +7,7 @@ import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
 import com.mtvs.flykidsbackend.mission.entity.MissionItem;
+import com.mtvs.flykidsbackend.mission.model.MissionResultStatus;
 import com.mtvs.flykidsbackend.mission.repository.DroneMissionResultRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionItemRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionRepository;
@@ -32,6 +33,7 @@ public class MissionServiceImpl implements MissionService {
     private final DroneMissionResultRepository resultRepository;
     private final DroneMissionResultService resultService;
     private final ScoreCalculator scoreCalculator;
+    private final DroneMissionResultRepository droneMissionResultRepository;
 
     @Override
     @Transactional
@@ -245,6 +247,30 @@ public class MissionServiceImpl implements MissionService {
         return text.replaceAll("[^\\p{L}\\p{N}\\s.!?]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    @Override
+    @Transactional
+    public void abortMission(Long missionId, Long userId) {
+
+        // 1) 미션 존재 여부 검증
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
+
+        // 2) 결과 엔티티 저장
+        DroneMissionResult result = DroneMissionResult.builder()
+                .userId(userId)
+                .droneId("1")             // 기본 드론 ID 또는 파라미터
+                .totalTime(0)             // 중단 시 0 또는 클라이언트 전달값
+                .deviationCount(0)
+                .collisionCount(0)
+                .score(0)
+                .success(false)
+                .status(MissionResultStatus.ABORT)
+                .mission(mission)
+                .build();
+
+        droneMissionResultRepository.save(result);
     }
 
 }

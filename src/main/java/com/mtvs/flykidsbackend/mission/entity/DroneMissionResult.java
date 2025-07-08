@@ -1,5 +1,6 @@
 package com.mtvs.flykidsbackend.mission.entity;
 
+import com.mtvs.flykidsbackend.mission.model.MissionResultStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -54,12 +55,19 @@ public class DroneMissionResult {
     /** 미션 완료 시각 */
     private LocalDateTime completedAt;
 
+    /** 미션 수행 상태 (성공/실패/중단) */
+    @Enumerated(EnumType.STRING)
+    private MissionResultStatus status;
+
     /**
      * 엔티티 저장 시 완료 시간 자동 세팅
      */
     @PrePersist
     protected void onCreate() {
         this.completedAt = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = this.success ? MissionResultStatus.SUCCESS : MissionResultStatus.FAIL;
+        }
     }
 
     /**
