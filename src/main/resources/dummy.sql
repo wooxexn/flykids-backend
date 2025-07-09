@@ -1,10 +1,20 @@
--- missions 테이블에 1번 미션 추가
-INSERT INTO missions (id, time_limit, total_coin_count, title, type)
-VALUES (1, 300, 10, '드론 도전 미션', 'COMPLEX');
+-- 1. 동전 미션 (COIN)
+INSERT INTO missions (id, title, type, time_limit, order_index, locked)
+VALUES (1, '동전 미션', 'COIN', 60, 1, false);
 
--- mission_items 테이블에 미션 아이템 3개 추가 (mission_id=1)
-INSERT INTO mission_items (id, mission_id, time_limit, total_coin_count, type, title)
-VALUES
-    (1, 1, 300, 10, 'COIN', '코인 모으기'),
-(2, 1, 300, 0, 'OBSTACLE', '장애물 피하기'),
-(3, 1, 300, 0, 'PHOTO', '사진 찍기');
+INSERT INTO mission_items (id, mission_id, type, time_limit, title, total_coin_count, "order")
+VALUES (1001, 1, 'COIN', 60, '동전 미션 아이템', 10, 0);
+
+-- 2. 장애물 미션 (OBSTACLE)
+INSERT INTO missions (id, title, type, time_limit, order_index, locked)
+VALUES (2, '장애물 미션', 'OBSTACLE', 60, 2, false);
+
+INSERT INTO mission_items (id, mission_id, type, time_limit, title, "order")
+VALUES (1002, 2, 'OBSTACLE', 60, '장애물 미션 아이템', 0);
+
+-- 3. 사진 미션 (PHOTO)
+INSERT INTO missions (id, title, type, time_limit, order_index, locked)
+VALUES (3, '사진 미션', 'PHOTO', 60, 3, false);
+
+INSERT INTO mission_items (id, mission_id, type, time_limit, title, "order")
+VALUES (1003, 3, 'PHOTO', 60, '사진 미션 아이템', 0);
