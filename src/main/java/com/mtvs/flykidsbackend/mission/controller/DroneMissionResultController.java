@@ -6,6 +6,7 @@ import com.mtvs.flykidsbackend.mission.entity.Mission;
 import com.mtvs.flykidsbackend.mission.service.DroneMissionResultService;
 import com.mtvs.flykidsbackend.mission.service.MissionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -204,4 +205,30 @@ public class DroneMissionResultController {
                 Map.of("message", "미션을 중단했습니다. 다음에 다시 도전해보세요!")
         );
     }
+
+    /**
+     * 실패한 단계 재도전 처리 API
+     * - 실패한 단계만 상태를 초기화하여 다시 도전 가능하게 만듭니다.
+     * - 이미 성공한 단계는 그대로 유지됩니다.
+     *
+     * @param missionId 재도전할 미션 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 성공 메시지
+     */
+    @Operation(
+            summary = "실패한 단계 재도전 처리",
+            description = "사용자가 특정 미션에서 실패한 단계만 재도전할 수 있도록 상태를 초기화합니다. " +
+                    "성공한 단계는 유지되고, 실패한 단계만 다시 시도할 수 있게 설정됩니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @PostMapping("/{missionId}/retry")
+    public ResponseEntity<Map<String, String>> retryFailedMissionItems(
+            @PathVariable Long missionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        droneMissionResultService.retryFailedItems(userDetails.getId(), missionId);
+
+        return ResponseEntity.ok(Map.of("message", "실패한 단계들을 다시 도전할 수 있도록 초기화했습니다."));
+    }
+
 }

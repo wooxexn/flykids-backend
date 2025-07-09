@@ -18,5 +18,10 @@ public enum MissionResultStatus {
     /**
      * 미션 중단 (사용자가 도중에 종료한 경우)
      */
-    ABORT
+    ABORT,
+
+    /**
+     * 미션 미시도 (아직 시도하지 않은 상태)
+     */
+    NOT_ATTEMPTED
 }

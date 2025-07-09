@@ -1,6 +1,7 @@
 package com.mtvs.flykidsbackend.mission.service;
 
 import com.mtvs.flykidsbackend.mission.dto.*;
+import com.mtvs.flykidsbackend.mission.entity.DroneMissionItemResult;
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto.MissionItemResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
@@ -29,14 +30,15 @@ public class DroneMissionResultService {
     private final MissionItemRepository missionItemRepository;
     private final ScoreCalculator scoreCalculator;
     private final UserRepository userRepository;
+    private final DroneMissionItemResultRepository itemResultRepository;
 
     /**
      * 미션 결과 저장
      * <p>복합 미션 요청을 받아 각 하위 미션(COIN/OBSTACLE/PHOTO)의 결과를 저장한다.</p>
      *
-     * @param userId 사용자 ID
+     * @param userId    사용자 ID
      * @param missionId 미션 ID
-     * @param dto 수행 결과 요청 DTO
+     * @param dto       수행 결과 요청 DTO
      * @return 저장된 결과 리스트
      * @throws NoSuchElementException 미션 또는 미션 아이템을 찾을 수 없는 경우
      */
@@ -86,8 +88,8 @@ public class DroneMissionResultService {
     /**
      * 미션 성공 여부 판단
      *
-     * @param type 미션 타입
-     * @param dto 사용자 제출 결과
+     * @param type        미션 타입
+     * @param dto         사용자 제출 결과
      * @param missionItem 기준 미션 정보
      * @return 성공 여부
      */
@@ -221,4 +223,34 @@ public class DroneMissionResultService {
         // 3. 결과 저장
         resultRepository.save(result);
     }
+
+    /**
+     * 실패한 단계 재도전 처리 메서드
+     * <p>
+     * - 유저가 특정 미션을 다시 시도할 때, 기존에 실패한 단계만 초기화하여
+     * NOT_ATTEMPTED 상태로 변경한다.
+     * - 이미 성공한 단계는 그대로 유지하여, 실패한 단계부터 이어서 재도전 가능하게 한다.
+     * </p>
+     *
+     * @param userId    재도전할 유저의 ID
+     * @param missionId 재도전할 미션의 ID
+     */
+    @Transactional
+    public void retryFailedItems(Long userId, Long missionId) {
+
+        // 1. 해당 유저가 수행한 미션 중, 실패(Failure)한 단계들만 조회
+        List<DroneMissionItemResult> failedItems =
+                itemResultRepository.findByUserIdAndMissionIdAndStatus(
+                        userId,
+                        missionId,
+                        MissionResultStatus.FAIL
+                );
+
+        // 2. 각 실패한 단계의 상태를 'NOT_ATTEMPTED'로 변경하여 재도전 가능하게 함
+        for (DroneMissionItemResult item : failedItems) {
+            item.setStatus(MissionResultStatus.NOT_ATTEMPTED);
+            itemResultRepository.save(item);  // 상태 갱신
+        }
+    }
 }
+
