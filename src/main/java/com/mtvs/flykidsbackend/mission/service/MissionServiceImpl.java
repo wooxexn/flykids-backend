@@ -1,5 +1,8 @@
 package com.mtvs.flykidsbackend.mission.service;
 
+import com.mtvs.flykidsbackend.ai.dto.TtsRequestDto;
+import com.mtvs.flykidsbackend.ai.dto.TtsResponseDto;
+import com.mtvs.flykidsbackend.ai.service.TtsService;
 import com.mtvs.flykidsbackend.mission.dto.*;
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
@@ -32,6 +35,7 @@ public class MissionServiceImpl implements MissionService {
     private final ScoreCalculator scoreCalculator;
     private final UserMissionProgressService userMissionProgressService;
     private final UserRepository userRepository;
+    private final TtsService ttsService;
 
     @Override
     @Transactional
@@ -167,6 +171,16 @@ public class MissionServiceImpl implements MissionService {
         String fullMsg = baseSuccessMsg + "\n" + finalMsg;
         String cleanMsg = cleanForTTS(fullMsg);
 
+        //TTS 요청 보내기
+        TtsRequestDto ttsRequest = TtsRequestDto.builder()
+                .userId(user.getUsername()) // 또는 userId.toString()
+                .missionId(missionId)
+                .status(success ? "success" : "fail")
+                .message(cleanMsg)
+                .build();
+
+        TtsResponseDto ttsResponse = ttsService.sendTtsRequest(ttsRequest);
+
         return MissionCompleteResponseDto.builder()
                 .score(score)
                 .duration(saved.getTotalTime())
@@ -175,6 +189,7 @@ public class MissionServiceImpl implements MissionService {
                 .success(success)
                 .message(cleanMsg)
                 .rawMessage(fullMsg)
+                .audioUrl(ttsResponse.getAudioUrl())
                 .build();
     }
 

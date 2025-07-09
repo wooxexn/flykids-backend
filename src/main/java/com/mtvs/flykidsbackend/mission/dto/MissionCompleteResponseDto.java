@@ -40,4 +40,7 @@ public class MissionCompleteResponseDto {
             example = "모든 미션 아이템 성공!\n[COIN 미션] 성공\n[OBSTACLE 미션] 성공\n[PHOTO 미션] 성공"
     )
     private String rawMessage;
+
+    @Schema(description = "TTS 음성 URL", example = "/audio/voice123.mp3")
+    private String audioUrl;
 }
