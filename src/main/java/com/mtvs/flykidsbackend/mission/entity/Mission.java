@@ -53,4 +53,13 @@ public class Mission {
      */
     @Column(name = "order_index")
     private Integer orderIndex;
+
+    /** 미션 잠금 여부 (true = 잠김, false = 열림) */
+    @Column(nullable = false)
+    private boolean locked = true;
+
+    /** 잠금 해제 처리 */
+    public void unlock() {
+        this.locked = false;
+    }
 }

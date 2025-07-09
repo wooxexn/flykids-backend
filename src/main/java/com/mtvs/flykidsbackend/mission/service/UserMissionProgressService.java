@@ -3,6 +3,7 @@ package com.mtvs.flykidsbackend.mission.service;
 import com.mtvs.flykidsbackend.mission.entity.UserMissionProgress;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
+import com.mtvs.flykidsbackend.user.model.UserMissionStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +46,7 @@ public interface UserMissionProgressService {
      * @param status 상태 문자열 (예: "COMPLETED")
      * @return 해당 상태의 미션 리스트
      */
-    List<UserMissionProgress> getProgressByStatus(User user, String status);
+    List<UserMissionProgress> getProgressByStatus(User user, UserMissionStatus status);
 
     /**
      * 특정 미션의 진행 상태를 변경하거나 새로 저장한다.
@@ -54,7 +55,7 @@ public interface UserMissionProgressService {
      * @param mission   대상 미션
      * @param newStatus 변경할 상태 값 (예: "COMPLETED")
      */
-    void updateStatus(User user, Mission mission, String newStatus);
+    void updateStatus(User user, Mission mission, UserMissionStatus newStatus);
 
     /**
      * 유저가 특정 미션에 대한 진행 정보가 없으면 지정한 상태로 생성
@@ -62,6 +63,6 @@ public interface UserMissionProgressService {
      * @param mission 오픈할 다음 미션
      * @param status 초기 상태 (예: "READY")
      */
-    void createIfNotExist(User user, Mission mission, String status);
+    void createIfNotExist(User user, Mission mission, UserMissionStatus status);
 
 }

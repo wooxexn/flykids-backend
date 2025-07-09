@@ -2,9 +2,11 @@ package com.mtvs.flykidsbackend.mission.controller;
 
 import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.mission.dto.UserMissionProgressResponseDto;
+import com.mtvs.flykidsbackend.mission.entity.Mission;
 import com.mtvs.flykidsbackend.mission.service.MissionService;
 import com.mtvs.flykidsbackend.mission.service.UserMissionProgressService;
 import com.mtvs.flykidsbackend.user.entity.User;
+import com.mtvs.flykidsbackend.user.model.UserMissionStatus;
 import com.mtvs.flykidsbackend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,11 +66,18 @@ public class UserMissionProgressController {
 
         User user = userService.findById(userDetails.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 사용자가 존재하지 않습니다."));
-        var mission = missionService.findById(missionId)
+
+        Mission mission = missionService.findById(missionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 미션이 존재하지 않습니다."));
 
-        progressService.updateStatus(user, mission, status);
+        try {
+            UserMissionStatus enumStatus = UserMissionStatus.valueOf(status.toUpperCase());
+            progressService.updateStatus(user, mission, enumStatus);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 상태 값입니다: " + status);
+        }
 
         return ResponseEntity.noContent().build();
     }
+
 }

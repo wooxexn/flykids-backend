@@ -19,4 +19,7 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     // 순서값으로 특정 미션 조회 (예: 다음 단계 미션 찾기)
     Optional<Mission> findByOrderIndex(Integer orderIndex);
 
+    // 현재 미션 순서보다 큰 locked 미션 중 가장 빠른 미션 찾기
+    Optional<Mission> findFirstByOrderIndexGreaterThanAndLockedIsTrueOrderByOrderIndexAsc(Integer currentOrderIndex);
+
 }

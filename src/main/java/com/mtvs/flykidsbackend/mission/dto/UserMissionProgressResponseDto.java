@@ -32,7 +32,7 @@ public class UserMissionProgressResponseDto {
         return UserMissionProgressResponseDto.builder()
                 .id(entity.getId())
                 .missionId(entity.getMission().getId())
-                .status(entity.getStatus())
+                .status(entity.getStatus().name())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
     }

@@ -3,6 +3,7 @@ package com.mtvs.flykidsbackend.mission.repository;
 import com.mtvs.flykidsbackend.mission.entity.UserMissionProgress;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
 import com.mtvs.flykidsbackend.user.entity.User;
+import com.mtvs.flykidsbackend.user.model.UserMissionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,9 +20,9 @@ public interface UserMissionProgressRepository extends JpaRepository<UserMission
     List<UserMissionProgress> findByUser(User user);
 
     // 유저 + 상태 기반 미션 진행 기록 (예: COMPLETED만 조회)
-    List<UserMissionProgress> findByUserAndStatus(User user, String status);
+    List<UserMissionProgress> findByUserAndStatus(User user, UserMissionStatus status);
 
      // 특정 유저와 미션 및 상태에 따른 미션 진행 기록 리스트 조회
-    List<UserMissionProgress> findByUserAndMissionAndStatus(User user, Mission mission, String status);
+     List<UserMissionProgress> findByUserAndMissionAndStatus(User user, Mission mission, UserMissionStatus status);
 
 }

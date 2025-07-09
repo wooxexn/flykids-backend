@@ -1,6 +1,7 @@
 package com.mtvs.flykidsbackend.mission.entity;
 
 import com.mtvs.flykidsbackend.user.entity.User;
+import com.mtvs.flykidsbackend.user.model.UserMissionStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,8 +35,9 @@ public class UserMissionProgress {
     private Mission mission;
 
     // 진행 상태 (예: PENDING, IN_PROGRESS, COMPLETED 등)
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status;
+    private UserMissionStatus status;
 
     // 마지막 상태 변경 시간
     private LocalDateTime updatedAt;

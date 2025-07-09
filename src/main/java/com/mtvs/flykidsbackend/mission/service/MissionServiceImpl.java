@@ -8,6 +8,7 @@ import com.mtvs.flykidsbackend.mission.model.MissionType;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.mission.repository.DroneMissionResultRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionRepository;
+import com.mtvs.flykidsbackend.user.model.UserMissionStatus;
 import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -142,7 +143,12 @@ public class MissionServiceImpl implements MissionService {
         // 성공 시 다음 미션 자동 오픈 처리
         if (success) {
             getNextMission(mission).ifPresent(nextMission -> {
-                userMissionProgressService.createIfNotExist(user, nextMission, "READY");
+                // 1. 다음 미션을 오픈 처리
+                nextMission.unlock();
+                missionRepository.save(nextMission); // 변경사항 저장
+
+                // 2. 유저 진행 상태 초기화 (enum으로 수정)
+                userMissionProgressService.createIfNotExist(user, nextMission, UserMissionStatus.READY);
             });
         }
 
