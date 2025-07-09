@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "drone_mission_result")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder

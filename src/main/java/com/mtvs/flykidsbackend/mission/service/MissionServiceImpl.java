@@ -1,16 +1,14 @@
 package com.mtvs.flykidsbackend.mission.service;
 
-import com.mtvs.flykidsbackend.mission.dto.DroneMissionResultRequestDto;
-import com.mtvs.flykidsbackend.mission.dto.MissionCompleteResponseDto;
-import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
-import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
+import com.mtvs.flykidsbackend.mission.dto.*;
 import com.mtvs.flykidsbackend.mission.entity.DroneMissionResult;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
-import com.mtvs.flykidsbackend.mission.entity.MissionItem;
 import com.mtvs.flykidsbackend.mission.model.MissionResultStatus;
+import com.mtvs.flykidsbackend.mission.model.MissionType;
+import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.mission.repository.DroneMissionResultRepository;
-import com.mtvs.flykidsbackend.mission.repository.MissionItemRepository;
 import com.mtvs.flykidsbackend.mission.repository.MissionRepository;
+import com.mtvs.flykidsbackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +19,7 @@ import java.util.stream.Collectors;
 
 /**
  * 미션 관리 서비스 구현체
- * - 미션 등록, 수정, 삭제, 조회, 중단 기능을 처리한다
+ * - 미션 등록, 수정, 삭제, 조회, 완료 기능을 처리한다
  * - Controller와 Repository 사이의 비즈니스 로직을 담당한다
  */
 @Service
@@ -29,9 +27,10 @@ import java.util.stream.Collectors;
 public class MissionServiceImpl implements MissionService {
 
     private final MissionRepository missionRepository;
-    private final MissionItemRepository missionItemRepository;
     private final DroneMissionResultRepository resultRepository;
     private final ScoreCalculator scoreCalculator;
+    private final UserMissionProgressService userMissionProgressService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -40,16 +39,9 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = Mission.builder()
                 .title(dto.getTitle())
                 .timeLimit(dto.getTimeLimit())
+                .type(dto.getType())
+                .totalCoinCount(dto.getTotalCoinCount())
                 .build();
-
-        dto.getItems().forEach(i -> mission.addItem(
-                MissionItem.builder()
-                        .title(i.getTitle())
-                        .timeLimit(i.getTimeLimit())
-                        .type(i.getType())
-                        .totalCoinCount(i.getTotalCoinCount())
-                        .build()
-        ));
 
         return MissionResponseDto.from(missionRepository.save(mission));
     }
@@ -61,22 +53,12 @@ public class MissionServiceImpl implements MissionService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
         mission.setTitle(dto.getTitle());
-        mission.setTimeLimit(dto.getTimeLimit());   // 빠져 있던 부분
+        mission.setTimeLimit(dto.getTimeLimit());
+        mission.setType(dto.getType());
+        mission.setTotalCoinCount(dto.getTotalCoinCount());
 
-        mission.getMissionItems().clear();          // orphanRemoval=true → 자동 삭제
-        dto.getItems().forEach(i -> mission.addItem(
-                MissionItem.builder()
-                        .title(i.getTitle())
-                        .timeLimit(i.getTimeLimit())
-                        .type(i.getType())
-                        .totalCoinCount(i.getTotalCoinCount())
-                        .build()
-        ));
-
-        return MissionResponseDto.from(mission);    // dirty checking
+        return MissionResponseDto.from(mission);
     }
-
-    // 이하 기존 메서드 유지
 
     @Override
     public void deleteMission(Long id) {
@@ -103,15 +85,24 @@ public class MissionServiceImpl implements MissionService {
 
     /**
      * 미션 완료 처리
-     * - 각 미션 아이템 결과로 점수를 계산하고 SUCCESS/FAIL 상태를 판단한다
-     *   (모든 아이템 성공 시 SUCCESS, 하나라도 실패하면 FAIL).
-     * - 결과를 DroneMissionResult 엔티티로 저장한다.
-     * - 최종 점수, 소요 시간, 이탈/충돌 횟수, 상태, 안내 메시지를 반환한다.
      *
-     * @param userId    완료한 유저 ID (JWT 토큰)
-     * @param missionId 완료한 미션 ID
-     * @param dto       미션 아이템별 결과 데이터 DTO
-     * @return 미션 완료 결과 응답 DTO
+     * <기능 요약>
+     * - 클라이언트로부터 전달받은 미션 수행 결과(드론 ID, 수행 시간, 결과 등)를 바탕으로
+     *   점수를 계산하고 성공 여부를 판단한다.
+     * - 결과를 DB에 저장하고, 최종 응답 메시지를 생성하여 반환한다.
+     *
+     * <처리 순서>
+     * 1. 미션 정보 조회
+     * 2. 미션 유형에 따른 점수 계산 및 성공 여부 판단
+     * 3. 결과(DroneMissionResult) 저장
+     * 4. 사용자에게 전달할 피드백 메시지 구성 (AI/TTS용)
+     * 5. MissionCompleteResponseDto 응답 반환
+     *
+     * @param userId    JWT로부터 전달된 사용자 ID
+     * @param missionId 수행한 미션의 ID
+     * @param dto       미션 수행 결과 데이터 (단일 미션 아이템 정보 포함)
+     * @return MissionCompleteResponseDto (점수, 성공 여부, 안내 메시지 포함)
+     * @throws IllegalArgumentException 존재하지 않는 미션 ID인 경우
      */
     @Transactional
     @Override
@@ -119,136 +110,73 @@ public class MissionServiceImpl implements MissionService {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 미션이 존재하지 않습니다."));
 
-        List<DroneMissionResultRequestDto.MissionItemResult> itemResults = dto.getItemResults();
-        if (itemResults == null || itemResults.isEmpty()) {
-            throw new IllegalArgumentException("미션 아이템 결과가 없습니다.");
-        }
+        // User 객체 조회 추가
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 존재하지 않습니다."));
 
-        int totalScore = 0;
-        int successCount = 0;
-        StringBuilder msgBuilder = new StringBuilder();
+        MissionType type = mission.getType();
 
+        // 단일 MissionItemResult 필드 사용
+        DroneMissionResultRequestDto.MissionItemResult item = dto.getItemResult();
 
-        // 각 미션 아이템별 결과 처리
-        for (var itemResult : itemResults) {
-            // 미션에서 해당 타입의 미션 아이템 조회
-            MissionItem missionItem = mission.getMissionItems().stream()
-                    .filter(mi -> mi.getType() == itemResult.getMissionType())
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("해당 미션 아이템이 존재하지 않습니다."));
+        // 점수 계산
+        int score = scoreCalculator.calculateScore(type, dto);
 
-            // ScoreCalculator에 점수 계산 위임
-            int score = scoreCalculator.calculateScore(
-                    itemResult.getMissionType(),
-                    itemResult.getTotalTime(),
-                    itemResult.getDeviationCount(),
-                    itemResult.getCollisionCount(),
-                    itemResult.getCollectedCoinCount() != null ? itemResult.getCollectedCoinCount() : 0
-            );
+        // 성공 여부 판별
+        boolean success = scoreCalculator.isMissionSuccess(type, dto, mission);
 
-            // ScoreCalculator에 성공 여부 판단 위임
-            boolean success = scoreCalculator.isMissionSuccess(itemResult.getMissionType(), itemResult, missionItem);
-
-            totalScore += score;
-            if (success) successCount++;
-
-            // 결과 메시지 빌더에 상태 추가
-            switch (itemResult.getMissionType()) {
-                case COIN -> msgBuilder.append(
-                        success ? "코인을 하나도 빠짐없이 다 모았어요! 대단해요! " : "코인을 몇 개 놓쳤지만 잘했어요! "
-                );
-                case OBSTACLE -> msgBuilder.append(
-                        success ? "장애물을 멋지게 피했어요! 집중력이 최고예요! " : "조금 부딪혔지만 끝까지 도전했어요! "
-                );
-                case PHOTO -> msgBuilder.append(
-                        success ? "사진을 정확한 위치에서 잘 찍었어요! " : "조금 위치가 달랐지만 사진을 찍으려는 노력이 멋졌어요! "
-                );
-            }
-        }
-
-        // DroneMissionResult 엔티티 생성 및 저장
+        // 결과 저장
         DroneMissionResult result = DroneMissionResult.builder()
                 .userId(userId)
                 .mission(mission)
                 .droneId(dto.getDroneId())
-                .totalTime(itemResults.stream().mapToDouble(i -> i.getTotalTime()).sum())
-                .deviationCount(itemResults.stream().mapToInt(i -> i.getDeviationCount()).sum())
-                .collisionCount(itemResults.stream().mapToInt(i -> i.getCollisionCount()).sum())
-                .score(totalScore)
-                .status(successCount == mission.getMissionItems().size()
-                        ? MissionResultStatus.SUCCESS
-                        : MissionResultStatus.FAIL)
+                .totalTime(item.getTotalTime())
+                .deviationCount(item.getDeviationCount())
+                .collisionCount(item.getCollisionCount())
+                .score(score)
+                .status(success ? MissionResultStatus.SUCCESS : MissionResultStatus.FAIL)
                 .build();
 
         DroneMissionResult saved = resultRepository.save(result);
 
-        // 최종 안내 메시지 작성
-        boolean allSuccess = successCount == mission.getMissionItems().size();
-
-        // 점수 구간별 세부 피드백 문장 생성 (성공일 때는 기본 멘트만 사용)
-        String baseMsg = "";
-        if (!allSuccess) {
-            if (totalScore >= 90) {
-                baseMsg = "점수는 높지만 몇 가지 미션을 실패했어요. 다음엔 꼭 성공해요!";
-            } else if (totalScore >= 70) {
-                baseMsg = "아쉬웠지만 많이 노력했어요! 다음엔 꼭 성공해요!";
-            } else {
-                baseMsg = "조금 힘들었지만 포기하지 않았어요! 다시 도전해봐요!";
-            }
+        // 성공 시 다음 미션 자동 오픈 처리
+        if (success) {
+            getNextMission(mission).ifPresent(nextMission -> {
+                userMissionProgressService.createIfNotExist(user, nextMission, "READY");
+            });
         }
 
-        // 기본 멘트 (성공/실패 구분)
-        String baseSuccessMsg = allSuccess
-                ? "모든 미션을 완벽하게 해냈어요! 정말 멋진 드론 조종자예요!"
-                : "조금 어려웠지만 끝까지 포기하지 않았어요! 다음엔 더 잘할 수 있어요!";
+        // 메시지 생성
+        String finalMsg = switch (type) {
+            case COIN -> success ? "코인을 다 모았어요! 대단해요!" : "코인을 몇 개 놓쳤지만 잘했어요!";
+            case OBSTACLE -> success ? "장애물을 멋지게 피했어요!" : "조금 부딪혔지만 끝까지 도전했어요!";
+            case PHOTO -> success ? "사진을 정확히 찍었어요!" : "사진 찍으려는 노력이 멋졌어요!";
+            default -> "미션을 완료했어요!";
+        };
 
-        // 최종 멘트 조립
-        String finalMsg = baseSuccessMsg;
-        if (!baseMsg.isEmpty()) {
-            finalMsg += " " + baseMsg;
-        }
+        String baseSuccessMsg = success ?
+                "미션을 완벽하게 해냈어요! 정말 멋진 드론 조종자예요!" :
+                "조금 어려웠지만 포기하지 않았어요! 다음엔 더 잘할 수 있어요!";
 
-        finalMsg += "\n" + msgBuilder.toString();
+        String fullMsg = baseSuccessMsg + "\n" + finalMsg;
+        String cleanMsg = cleanForTTS(fullMsg);
 
-        // 음성 출력용 메시지 정제
-        // - 특수기호, 줄바꿈 등을 제거한 버전
-        // - AI 음성 합성(TTS) 시스템에서 오류 없이 읽히도록 가공
-        String cleanMsg = cleanForTTS(finalMsg);
-
-        // 응답 DTO 반환
         return MissionCompleteResponseDto.builder()
-                .score(totalScore)
+                .score(score)
                 .duration(saved.getTotalTime())
                 .deviationCount(saved.getDeviationCount())
                 .collisionCount(saved.getCollisionCount())
-                .success(allSuccess)
+                .success(success)
                 .message(cleanMsg)
-                .rawMessage(finalMsg)
+                .rawMessage(fullMsg)
                 .build();
     }
-
 
     @Override
     public Optional<Mission> findById(Long id) {
         return missionRepository.findById(id);
     }
 
-    @Override
-    public Optional<MissionItem> findMissionItemById(Long id) {
-        return missionItemRepository.findById(id);
-    }
-
-    /**
-     * 미션 엔티티 직접 조회
-     *
-     * - 주어진 ID를 기반으로 Mission 엔티티를 조회한다.
-     * - 해당 ID의 미션이 존재하지 않으면 예외를 발생시킨다.
-     * - 컨트롤러 또는 서비스 내부에서 MissionResponseDto 변환 전에 엔티티가 직접 필요한 경우 사용된다.
-     *
-     * @param id 조회할 미션 ID
-     * @return 조회된 Mission 엔티티
-     * @throws IllegalArgumentException 미션이 존재하지 않을 경우
-     */
     @Override
     public Mission getMissionEntity(Long id) {
         return missionRepository.findById(id)
@@ -257,20 +185,22 @@ public class MissionServiceImpl implements MissionService {
 
     /**
      * TTS(Text-To-Speech)용 문자열 정제 함수
-     *
-     * - 원본 안내 메시지에서 특수기호, 줄바꿈 등을 제거하여
-     *   음성 합성에 적합한 단순하고 깔끔한 문장으로 변환한다.
-     *
-     * @param text 변환할 원본 문자열
-     * @return 특수기호와 줄바꿈이 제거된 정제된 문자열
+     * - 특수기호, 줄바꿈 등을 제거하여 음성 합성에 적합한 문장으로 변환
      */
     private String cleanForTTS(String text) {
-        // 특수문자 중 . ! ? 는 허용하고 나머지만 제거
         return text.replaceAll("[^\\p{L}\\p{N}\\s.!?]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
     }
 
+    /**
+     * 현재 미션 다음 순서의 미션 조회
+     * - orderIndex를 기반으로 다음 미션을 찾아 반환
+     * - 없으면 Optional.empty()
+     */
+    @Override
+    public Optional<Mission> getNextMission(Mission currentMission) {
+        Integer nextOrderIndex = currentMission.getOrderIndex() + 1;
+        return missionRepository.findByOrderIndex(nextOrderIndex);
+    }
 }
-
-

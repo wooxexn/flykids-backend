@@ -2,7 +2,6 @@ package com.mtvs.flykidsbackend.mission.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
-import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto.MissionItemDto;
 import com.mtvs.flykidsbackend.mission.model.MissionType;
 import com.mtvs.flykidsbackend.user.dto.LoginRequestDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,14 +13,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * UserMissionProgressController 통합 테스트
+ * UserMissionProgressController 통합 테스트 (단일 미션 구조용)
  */
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = true)
@@ -35,7 +32,6 @@ public class UserMissionProgressControllerIntegrationTest {
 
     private String accessToken;
     private Long missionId;
-    private Long missionItemId;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -51,17 +47,12 @@ public class UserMissionProgressControllerIntegrationTest {
 
         accessToken = objectMapper.readTree(loginResponse).get("accessToken").asText();
 
-        // 2. 테스트용 미션 생성 (미션 + 아이템 1개 이상 포함)
+        // 2. 단일 미션 생성
         MissionRequestDto missionRequestDto = MissionRequestDto.builder()
-                .title("테스트 미션")
-                .items(List.of(
-                        MissionItemDto.builder()
-                                .title("테스트 아이템")
-                                .type(MissionType.COIN)
-                                .timeLimit(300)
-                                .totalCoinCount(10)
-                                .build()
-                ))
+                .title("단일 미션 테스트")
+                .timeLimit(180)
+                .type(MissionType.COIN)
+                .totalCoinCount(10)
                 .build();
 
         String missionJson = objectMapper.writeValueAsString(missionRequestDto);
@@ -75,10 +66,7 @@ public class UserMissionProgressControllerIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        // missionId, missionItemId 추출
         missionId = objectMapper.readTree(missionResponse).get("id").asLong();
-        missionItemId = objectMapper.readTree(missionResponse)
-                .get("items").get(0).get("id").asLong();
     }
 
     @Test
@@ -92,13 +80,14 @@ public class UserMissionProgressControllerIntegrationTest {
 
     @Test
     void updateProgress_success() throws Exception {
-        mockMvc.perform(post("/api/user-mission-progress/missions/{missionId}/items/{missionItemId}",
-                        missionId, missionItemId)
+        // 단일 미션용으로 수정된 경로에 맞춰서 상태 업데이트
+        mockMvc.perform(post("/api/user-mission-progress/missions/{missionId}",
+                        missionId)
                         .param("status", "COMPLETED")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isNoContent());
 
-        // 상태 업데이트 후 조회해서 반영됐는지 간단 검증 (선택 사항)
+        // 업데이트 상태 반영 확인 (선택사항)
         MvcResult result = mockMvc.perform(get("/api/user-mission-progress/missions/{missionId}", missionId)
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())

@@ -33,11 +33,6 @@ public class UserMissionProgress {
     @JoinColumn(name = "mission_id", nullable = false)
     private Mission mission;
 
-    // 미션 아이템 (단계) (다대일)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mission_item_id", nullable = false)
-    private MissionItem missionItem;
-
     // 진행 상태 (예: PENDING, IN_PROGRESS, COMPLETED 등)
     @Column(nullable = false, length = 20)
     private String status;

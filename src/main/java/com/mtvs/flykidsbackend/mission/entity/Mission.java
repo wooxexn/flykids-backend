@@ -43,20 +43,14 @@ public class Mission {
     @Column(nullable = false)
     private MissionType type;
 
+    @Column
+    private Integer totalCoinCount;
+
     /**
-     * 미션에 속한 여러 MissionItem 리스트
-     * - 미션 단위로 여러 단계별 미션을 포함
+     * 미션 순서
+     * - 낮은 숫자일수록 먼저 수행해야 함
+     * - 예: orderIndex = 1 → 첫 번째 미션
      */
-    @OneToMany(mappedBy = "mission", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<MissionItem> missionItems = new ArrayList<>();
-
-    public void addItem(MissionItem item) {
-        missionItems.add(item);
-        item.setMission(this); // 연관관계 편의 메서드
-    }
-
-    public void removeItem(MissionItem item) {
-        missionItems.remove(item);
-        item.setMission(null);  // 연관관계 끊기
-    }
+    @Column(name = "order_index")
+    private Integer orderIndex;
 }

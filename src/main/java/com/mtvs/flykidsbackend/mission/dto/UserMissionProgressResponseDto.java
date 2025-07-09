@@ -22,9 +22,6 @@ public class UserMissionProgressResponseDto {
     @Schema(description = "미션 ID", example = "10")
     private Long missionId;
 
-    @Schema(description = "미션 아이템 ID", example = "100")
-    private Long missionItemId;
-
     @Schema(description = "진행 상태", example = "COMPLETED")
     private String status;
 
@@ -35,7 +32,6 @@ public class UserMissionProgressResponseDto {
         return UserMissionProgressResponseDto.builder()
                 .id(entity.getId())
                 .missionId(entity.getMission().getId())
-                .missionItemId(entity.getMissionItem().getId())
                 .status(entity.getStatus())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
