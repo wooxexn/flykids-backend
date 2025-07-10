@@ -56,6 +56,7 @@ public class Mission {
 
     /** 미션 잠금 여부 (true = 잠김, false = 열림) */
     @Column(nullable = false)
+    @Builder.Default
     private boolean locked = true;
 
     /** 잠금 해제 처리 */
