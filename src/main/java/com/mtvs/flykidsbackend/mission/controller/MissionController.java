@@ -1,8 +1,13 @@
 package com.mtvs.flykidsbackend.mission.controller;
 
+import com.mtvs.flykidsbackend.ai.dto.TtsRequestDto;
+import com.mtvs.flykidsbackend.ai.dto.TtsResponseDto;
 import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
+import com.mtvs.flykidsbackend.mission.dto.IntroAudioResponseDto;
+import com.mtvs.flykidsbackend.mission.dto.IntroMessageResponseDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionRequestDto;
 import com.mtvs.flykidsbackend.mission.dto.MissionResponseDto;
+import com.mtvs.flykidsbackend.mission.entity.Mission;
 import com.mtvs.flykidsbackend.mission.service.MissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,9 +16,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.mtvs.flykidsbackend.ai.service.TtsService;
 
 import java.nio.file.attribute.UserPrincipal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 미션 관리 API 컨트롤러
@@ -29,6 +36,7 @@ import java.util.List;
 public class MissionController {
 
     private final MissionService missionService;
+    private final TtsService ttsService;
 
     /**
      * [POST] 미션 등록
@@ -139,6 +147,66 @@ public class MissionController {
     @GetMapping
     public ResponseEntity<List<MissionResponseDto>> getAllMissions() {
         return ResponseEntity.ok(missionService.getAllMissions());
+    }
+
+    /**
+     * 미션 시작 안내 멘트 조회 API
+     *
+     * - 특정 미션 ID에 해당하는 시작 멘트를 반환한다
+     * - 클라이언트(예: 유니티)가 미션 시작 전, 드론 NPC의 음성 또는 자막으로 활용 가능
+     *
+     * @param id 조회할 미션 ID (Path Variable)
+     * @return introMessage 텍스트 (Map 형태로 반환)
+     * @throws IllegalArgumentException 존재하지 않는 미션 ID인 경우
+     */
+    @GetMapping("/{id}/intro")
+    public ResponseEntity<IntroMessageResponseDto> getIntroMessage(@PathVariable("id") Long id) {
+        Mission mission = missionService.getMissionEntity(id);
+
+        IntroMessageResponseDto response = IntroMessageResponseDto.builder()
+                .missionId(mission.getId())
+                .introMessage(mission.getIntroMessage())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * [GET] 미션 시작 멘트 음성(mp3) URL 반환
+     * - TTS 서버에 요청해서 해당 미션의 시작 멘트를 음성으로 변환
+     * - 음성 파일의 URL을 클라이언트에게 전달
+     *
+     * @param id 미션 ID
+     * @return IntroAudioResponseDto (미션 ID, 음성 URL 포함)
+     */
+    @Operation(
+            summary = "미션 시작 안내 멘트의 TTS 음성 URL 조회",
+            description = "특정 미션의 시작 멘트를 음성으로 변환한 mp3 파일 URL을 반환합니다. " +
+                    "클라이언트는 해당 URL을 이용해 음성을 재생할 수 있습니다."
+    )
+    @GetMapping("/{id}/intro/audio")
+    public ResponseEntity<IntroAudioResponseDto> getIntroAudio(@PathVariable("id") Long id,
+                                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Mission mission = missionService.getMissionEntity(id);
+
+        // 사용자 ID는 음성 개별화나 AI 로그용으로 사용
+        String userId = (userDetails != null) ? userDetails.getUsername() : "anonymous";
+
+        // TTS 요청 DTO 생성
+        TtsRequestDto request = TtsRequestDto.builder()
+                .userId(userId)
+                .missionId(mission.getId())
+                .status("MISSION_START")  // 시작 멘트임을 의미
+                .message(mission.getIntroMessage())  // 멘트를 음성으로 변환
+                .build();
+
+        // TTS 요청 전송
+        TtsResponseDto response = ttsService.sendTtsRequest(request);
+
+        return ResponseEntity.ok(IntroAudioResponseDto.builder()
+                .missionId(mission.getId())
+                .audioUrl(response.getAudioUrl())
+                .build());
     }
 
 }

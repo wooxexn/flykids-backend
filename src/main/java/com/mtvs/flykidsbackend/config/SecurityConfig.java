@@ -51,6 +51,7 @@ public class SecurityConfig {
                                 "/api/route/points"
                         ).permitAll()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/missions/*/intro").permitAll()
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/missions/*/complete").authenticated()
                         .anyRequest().authenticated()

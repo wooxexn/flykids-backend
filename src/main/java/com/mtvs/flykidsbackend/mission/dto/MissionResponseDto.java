@@ -32,6 +32,9 @@ public class MissionResponseDto {
     @Schema(description = "요구 코인 개수 (코인 미션일 경우)", example = "10")
     private Integer totalCoinCount;
 
+    @Schema(description = "미션 시작 안내 멘트", example = "오늘 너의 첫 번째 임무는 하늘에 떠 있는 신비한 동전들을 모으는 거야!")
+    private String introMessage;
+
     public static MissionResponseDto from(Mission mission) {
         return MissionResponseDto.builder()
                 .id(mission.getId())
@@ -39,6 +42,7 @@ public class MissionResponseDto {
                 .timeLimit(mission.getTimeLimit())
                 .type(mission.getType())
                 .totalCoinCount(mission.getTotalCoinCount())
+                .introMessage(mission.getIntroMessage())
                 .build();
     }
 }

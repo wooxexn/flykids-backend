@@ -62,4 +62,12 @@ public class Mission {
     public void unlock() {
         this.locked = false;
     }
+
+    /**
+     * 미션 시작 안내 멘트
+     * - 드론 NPC가 미션을 설명해주는 텍스트
+     * - TTS 또는 텍스트 자막 등으로 활용
+     */
+    @Column(columnDefinition = "TEXT")
+    private String introMessage;
 }

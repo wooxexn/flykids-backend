@@ -29,4 +29,7 @@ public class MissionRequestDto {
 
     @Schema(description = "요구 코인 개수 (COIN 미션에만 해당)", example = "10")
     private Integer totalCoinCount;
+
+    @Schema(description = "미션 시작 안내 멘트", example = "오늘 너의 첫 번째 임무는 하늘에 떠 있는 신비한 동전들을 모으는 거야!")
+    private String introMessage;
 }

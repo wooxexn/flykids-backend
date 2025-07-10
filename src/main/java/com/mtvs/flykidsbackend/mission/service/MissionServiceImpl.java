@@ -46,6 +46,7 @@ public class MissionServiceImpl implements MissionService {
                 .timeLimit(dto.getTimeLimit())
                 .type(dto.getType())
                 .totalCoinCount(dto.getTotalCoinCount())
+                .introMessage(dto.getIntroMessage())
                 .build();
 
         return MissionResponseDto.from(missionRepository.save(mission));
@@ -61,6 +62,7 @@ public class MissionServiceImpl implements MissionService {
         mission.setTimeLimit(dto.getTimeLimit());
         mission.setType(dto.getType());
         mission.setTotalCoinCount(dto.getTotalCoinCount());
+        mission.setIntroMessage(dto.getIntroMessage());
 
         return MissionResponseDto.from(mission);
     }
