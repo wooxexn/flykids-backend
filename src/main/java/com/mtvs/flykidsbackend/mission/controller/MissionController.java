@@ -159,6 +159,11 @@ public class MissionController {
      * @return introMessage 텍스트 (Map 형태로 반환)
      * @throws IllegalArgumentException 존재하지 않는 미션 ID인 경우
      */
+    @Operation(
+            summary = "미션 시작 멘트 조회",
+            description = "미션 시작 전 사용자에게 안내할 텍스트 멘트를 반환합니다. " +
+                    "유니티 클라이언트에서 자막 또는 음성 처리용으로 활용 가능합니다."
+    )
     @GetMapping("/{id}/intro")
     public ResponseEntity<IntroMessageResponseDto> getIntroMessage(@PathVariable("id") Long id) {
         Mission mission = missionService.getMissionEntity(id);
