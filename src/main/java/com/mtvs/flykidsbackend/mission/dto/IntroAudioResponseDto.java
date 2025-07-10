@@ -14,6 +14,9 @@ public class IntroAudioResponseDto {
     @Schema(description = "미션 ID", example = "1")
     private Long missionId;
 
-    @Schema(description = "TTS로 생성된 음성 파일 URL", example = "http://ai-server.com/audio/mission1_intro.mp3")
+    @Schema(
+            description = "TTS로 생성된 음성 파일 URL",
+            example = "https://flykids-tts-files.s3.ap-northeast-2.amazonaws.com/mission1_intro.mp3"
+    )
     private String audioUrl;
 }
