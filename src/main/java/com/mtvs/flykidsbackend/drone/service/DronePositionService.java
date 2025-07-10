@@ -1,6 +1,8 @@
 package com.mtvs.flykidsbackend.drone.service;
 
+import com.mtvs.flykidsbackend.common.AudioFilePath;
 import com.mtvs.flykidsbackend.drone.dto.DronePositionRequestDto;
+import com.mtvs.flykidsbackend.drone.dto.DroneResponse;
 import com.mtvs.flykidsbackend.drone.entity.DronePositionLog;
 import com.mtvs.flykidsbackend.drone.entity.RouteDeviationLog;
 import com.mtvs.flykidsbackend.drone.entity.RoutePoint;
@@ -8,7 +10,6 @@ import com.mtvs.flykidsbackend.drone.repository.DronePositionLogRepository;
 import com.mtvs.flykidsbackend.drone.repository.RouteDeviationLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.mtvs.flykidsbackend.drone.dto.DroneResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,7 +37,7 @@ public class DronePositionService {
      * 드론 위치 데이터를 저장하고 경로 이탈, 고도 이탈, 충돌 여부를 판단한다.
      *
      * @param requestDto 드론 위치 요청 DTO
-     * @return DroneResponse(status, message)
+     * @return DroneResponse(status, message, audioUrl)
      */
     public DroneResponse savePosition(DronePositionRequestDto requestDto) {
 
@@ -48,7 +49,7 @@ public class DronePositionService {
                 throw new IllegalArgumentException("유효하지 않은 드론 위치 정보입니다.");
             }
 
-            // 현재 위치 로그 생성 & 저장
+            // 위치 로그 생성 & 저장
             DronePositionLog log = DronePositionLog.builder()
                     .droneId(requestDto.getDroneId())
                     .missionId(requestDto.getMissionId())
@@ -83,34 +84,60 @@ public class DronePositionService {
 
                 if (deltaY > 0.7 || deltaDistance < 0.1 || deltaRot > 45.0) {
                     saveDeviationLog(log);
-                    return new DroneResponse("COLLISION", "경고: 충돌이 감지되었습니다.");
+                    return new DroneResponse(
+                            "COLLISION",
+                            "경고: 충돌이 감지되었습니다.",
+                            AudioFilePath.FEEDBACK_COLLISION
+                    );
                 }
             }
 
             // 고도 이탈 체크
             double y = log.getY();
-            if (y < MIN_ALTITUDE || y > MAX_ALTITUDE) {
+            if (y < MIN_ALTITUDE) {
                 saveDeviationLog(log);
-                return new DroneResponse("ALTITUDE_ERROR", "경고: 고도가 기준 범위를 벗어났습니다.");
+                return new DroneResponse(
+                        "ALTITUDE_LOW",
+                        "경고: 고도가 너무 낮습니다.",
+                        AudioFilePath.FEEDBACK_ALTITUDE_LOW
+                );
+            } else if (y > MAX_ALTITUDE) {
+                saveDeviationLog(log);
+                return new DroneResponse(
+                        "ALTITUDE_HIGH",
+                        "경고: 고도가 너무 높습니다.",
+                        AudioFilePath.FEEDBACK_ALTITUDE_HIGH
+                );
             }
 
             // 경로 이탈 체크
             if (isOutOfRoute(log, routePoints)) {
                 saveDeviationLog(log);
-                return new DroneResponse("OUT_OF_BOUNDS", "경고: 드론이 기준 경로를 이탈했습니다.");
+                return new DroneResponse(
+                        "OUT_OF_BOUNDS",
+                        "경고: 드론이 기준 경로를 이탈했습니다.",
+                        AudioFilePath.FEEDBACK_DEVIATION
+                );
             }
 
-            // 정상처리
-            return new DroneResponse("OK", "드론 위치가 정상적으로 저장되었습니다.");
+            // 정상 처리
+            return new DroneResponse(
+                    "OK",
+                    "드론 위치가 정상적으로 저장되었습니다.",
+                    null
+            );
 
         } catch (Exception ex) {
-            return new DroneResponse("ERROR",
-                    "드론 위치 저장 중 오류 발생: " + ex.getMessage());
+            return new DroneResponse(
+                    "ERROR",
+                    "드론 위치 저장 중 오류 발생: " + ex.getMessage(),
+                    null
+            );
         }
     }
 
     /**
-     * 이탈/충돌 로그를 저장하는 공통 메서드
+     * 이탈/충돌 로그 저장
      */
     private void saveDeviationLog(DronePositionLog log) {
         RouteDeviationLog deviationLog = RouteDeviationLog.builder()
