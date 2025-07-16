@@ -29,6 +29,7 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           source: build/libs/flykids-backend-0.0.1-SNAPSHOT.jar
           target: /home/ec2-user/flykids-backend-0.0.1-SNAPSHOT.jar
+          tar_exec: ""
 
       - name: Restart app on EC2
         uses: appleboy/ssh-action@v0.1.10
