@@ -30,7 +30,7 @@ jobs:
           source: build/libs/flykids-backend-0.0.1-SNAPSHOT.jar
           target: /home/ec2-user/flykids-backend/build/libs/
           tar: false
-          rm: true
+          rm: false
 
       - name: Restart app on EC2
         uses: appleboy/ssh-action@v0.1.10
