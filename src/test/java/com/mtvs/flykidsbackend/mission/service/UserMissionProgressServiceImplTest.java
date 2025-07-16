@@ -4,6 +4,7 @@ import com.mtvs.flykidsbackend.mission.entity.UserMissionProgress;
 import com.mtvs.flykidsbackend.mission.repository.UserMissionProgressRepository;
 import com.mtvs.flykidsbackend.user.entity.User;
 import com.mtvs.flykidsbackend.mission.entity.Mission;
+import com.mtvs.flykidsbackend.user.model.UserMissionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -44,7 +45,7 @@ class UserMissionProgressServiceImplTest {
         UserMissionProgress progress = UserMissionProgress.builder()
                 .user(user)
                 .mission(mission)
-                .status("IN_PROGRESS")
+                .status(UserMissionStatus.IN_PROGRESS)
                 .build();
 
         when(progressRepository.findByUserAndMission(user, mission))
@@ -53,7 +54,7 @@ class UserMissionProgressServiceImplTest {
         Optional<UserMissionProgress> result = progressService.getProgress(user, mission);
 
         assertThat(result).isPresent();
-        assertThat(result.get().getStatus()).isEqualTo("IN_PROGRESS");
+        assertThat(result.get().getStatus()).isEqualTo(UserMissionStatus.IN_PROGRESS);
         verify(progressRepository).findByUserAndMission(user, mission);
     }
 
@@ -63,7 +64,10 @@ class UserMissionProgressServiceImplTest {
     @Test
     void saveOrUpdateProgress_저장호출() {
         UserMissionProgress progress = UserMissionProgress.builder()
-                .user(user).mission(mission).status("DONE").build();
+                .user(user)
+                .mission(mission)
+                .status(UserMissionStatus.SUCCESS)
+                .build();
 
         when(progressRepository.save(progress)).thenReturn(progress);
 
@@ -78,12 +82,11 @@ class UserMissionProgressServiceImplTest {
      */
     @Test
     void getProgressByStatus_상태별조회() {
-        String status = "DONE";
+        UserMissionStatus status = UserMissionStatus.SUCCESS;
         List<UserMissionProgress> list = List.of(
                 UserMissionProgress.builder().status(status).build()
         );
 
-        // Repository에서 유저+미션+상태 조건으로 리스트 반환 모킹
         when(progressRepository.findByUserAndMissionAndStatus(user, mission, status)).thenReturn(list);
 
         List<UserMissionProgress> result = progressService.getProgressByStatus(user, status);
@@ -101,16 +104,16 @@ class UserMissionProgressServiceImplTest {
         UserMissionProgress existingProgress = UserMissionProgress.builder()
                 .user(user)
                 .mission(mission)
-                .status("IN_PROGRESS")
+                .status(UserMissionStatus.IN_PROGRESS)
                 .build();
 
         when(progressRepository.findByUserAndMission(user, mission))
                 .thenReturn(Optional.of(existingProgress));
         when(progressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        progressService.updateStatus(user, mission, "DONE");
+        progressService.updateStatus(user, mission, UserMissionStatus.SUCCESS);
 
-        assertThat(existingProgress.getStatus()).isEqualTo("DONE");
+        assertThat(existingProgress.getStatus()).isEqualTo(UserMissionStatus.SUCCESS);
         verify(progressRepository).save(existingProgress);
     }
 
@@ -123,7 +126,7 @@ class UserMissionProgressServiceImplTest {
                 .thenReturn(Optional.empty());
         when(progressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        progressService.updateStatus(user, mission, "DONE");
+        progressService.updateStatus(user, mission, UserMissionStatus.SUCCESS);  // Enum
 
         ArgumentCaptor<UserMissionProgress> captor = ArgumentCaptor.forClass(UserMissionProgress.class);
         verify(progressRepository).save(captor.capture());
@@ -131,6 +134,6 @@ class UserMissionProgressServiceImplTest {
         UserMissionProgress saved = captor.getValue();
         assertThat(saved.getUser()).isEqualTo(user);
         assertThat(saved.getMission()).isEqualTo(mission);
-        assertThat(saved.getStatus()).isEqualTo("DONE");
+        assertThat(saved.getStatus()).isEqualTo(UserMissionStatus.SUCCESS);
     }
 }
