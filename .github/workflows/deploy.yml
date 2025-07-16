@@ -39,3 +39,5 @@ jobs:
           script: |
             pkill -f 'java -jar' || true
             nohup java -jar /home/ec2-user/flykids-backend-*.jar > app.log 2>&1 &
+            sleep 3
+            ps -ef | grep flykids
