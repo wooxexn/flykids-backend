@@ -40,7 +40,7 @@ public class VoiceFeedbackController {
 
     @Operation(
             summary = "음성 파일(STT) 업로드",
-            description = "유저의 음성(wav/mp3) 파일을 업로드하면, AI 서버에 전달하여 TTS 응답(mp3) URL을 반환합니다."
+            description = "유저의 음성 파일을 업로드하면, AI 서버에 전달하여 TTS 응답 URL을 반환합니다."
     )
     @PostMapping("/audio-stream")
     public ResponseEntity<TtsResponseDto> uploadVoice(@RequestParam("audioFile") MultipartFile audioFile) {
