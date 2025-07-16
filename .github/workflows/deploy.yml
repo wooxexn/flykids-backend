@@ -37,7 +37,5 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            pkill -f 'java -jar' || true
-            nohup java -jar /home/ec2-user/flykids-backend-*.jar > app.log 2>&1 &
-            sleep 3
-            ps -ef | grep flykids
+            sudo systemctl restart flykids.service
+            sudo systemctl status flykids.service
