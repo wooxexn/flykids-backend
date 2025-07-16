@@ -72,7 +72,7 @@ public class DroneMissionResultControllerIntegrationTest {
 
         requestDto = new DroneMissionResultRequestDto();
         requestDto.setDroneId("test-drone-001");
-        requestDto.setItemResults(List.of(missionItemResult));
+        requestDto.setItemResult(missionItemResult);
     }
 
     @Test
