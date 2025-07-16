@@ -39,32 +39,27 @@ public class VoiceFeedbackController {
     }
 
     @Operation(
-            summary = "음성 파일(STT) 업로드",
-            description = "유저의 음성 파일을 업로드하면, AI 서버에 전달하여 TTS 응답 URL을 반환합니다."
+            summary = "음성 파일(STT) 업로드 (binary)",
+            description = "유저의 음성(wav/mp3)을 바이너리로 업로드하면 AI 서버에 전달하여 음성 분석 결과를 반환합니다."
     )
-    @PostMapping("/audio-stream")
-    public ResponseEntity<TtsResponseDto> uploadVoice(@RequestParam("audioFile") MultipartFile audioFile) {
-        try {
-            // 헤더 설정
-            HttpHeaders headers = new HttpHeaders();
-            String contentType = audioFile.getContentType();
-            headers.setContentType(MediaType.valueOf(contentType));
+    @PostMapping(
+            value = "/audio-stream",
+            consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE
+    )
+    public ResponseEntity<TtsResponseDto> uploadVoice(@RequestBody byte[] audioBytes) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
-            // 파일 바이트 추출
-            HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioFile.getBytes(), headers);
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioBytes, headers);
 
-            // AI 서버로 요청
-            ResponseEntity<TtsResponseDto> response = restTemplate.exchange(
-                    "http://221.163.19.142:58014/api/v1/chatbot/audio",
-                    HttpMethod.POST,
-                    requestEntity,
-                    TtsResponseDto.class
-            );
+        ResponseEntity<TtsResponseDto> response = restTemplate.exchange(
+                "http://221.163.19.142:58014/api/v1/chatbot/audio",
+                HttpMethod.POST,
+                requestEntity,
+                TtsResponseDto.class
+        );
 
-            return ResponseEntity.ok(response.getBody());
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return ResponseEntity.ok(response.getBody());
     }
+
 }
