@@ -1,8 +1,8 @@
 package com.mtvs.flykidsbackend.config;
 
 import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
-import com.mtvs.flykidsbackend.user.entity.User;
-import com.mtvs.flykidsbackend.user.repository.UserRepository;
+import com.mtvs.flykidsbackend.domain.user.entity.User;
+import com.mtvs.flykidsbackend.domain.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

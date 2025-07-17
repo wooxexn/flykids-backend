@@ -1,7 +1,7 @@
 package com.mtvs.flykidsbackend.config.security;
 
-import com.mtvs.flykidsbackend.user.entity.User;
-import com.mtvs.flykidsbackend.user.repository.UserRepository;
+import com.mtvs.flykidsbackend.domain.user.entity.User;
+import com.mtvs.flykidsbackend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

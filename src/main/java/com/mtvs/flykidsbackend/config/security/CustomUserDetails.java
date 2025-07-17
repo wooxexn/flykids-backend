@@ -1,6 +1,6 @@
 package com.mtvs.flykidsbackend.config.security;
 
-import com.mtvs.flykidsbackend.user.entity.User;
+import com.mtvs.flykidsbackend.domain.user.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
