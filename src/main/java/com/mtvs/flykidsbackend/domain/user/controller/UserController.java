@@ -3,7 +3,6 @@ package com.mtvs.flykidsbackend.domain.user.controller;
 import com.mtvs.flykidsbackend.config.JwtUtil;
 import com.mtvs.flykidsbackend.config.security.CustomUserDetails;
 import com.mtvs.flykidsbackend.domain.user.dto.*;
-import com.mtvs.flykidsbackend.user.dto.*;
 import com.mtvs.flykidsbackend.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
