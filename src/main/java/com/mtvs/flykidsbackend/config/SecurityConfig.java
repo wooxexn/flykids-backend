@@ -48,11 +48,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/swagger-resources/**",
-                                "/api/route/points",
-                                "/api/tutorials/audio/**"
+                                "/api/route/points"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/missions/*/intro").permitAll()
-
                         // 그 외는 전부 인증 필요
                         .anyRequest().authenticated()
                 )
