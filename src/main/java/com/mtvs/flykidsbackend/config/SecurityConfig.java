@@ -10,6 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
@@ -47,18 +48,16 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/swagger-resources/**",
-                                "/api/drone/position-log",
-                                "/api/route/points"
+                                "/api/route/points",
+                                "/api/tutorials/audio/**"
                         ).permitAll()
-                        .requestMatchers("/api/auth/refresh-token").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/missions/*/intro").permitAll()
-                        .requestMatchers("/api/users/me").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/missions/*/complete").authenticated()
+
+                        // 그 외는 전부 인증 필요
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
 }
