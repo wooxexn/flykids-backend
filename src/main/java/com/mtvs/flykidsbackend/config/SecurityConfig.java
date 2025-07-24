@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-resources/**",
                                 "/api/route/points",
-                                "/ws/**"
+                                "/ws/**",
+                                "/error"
                         ).permitAll()
                         // 그 외는 전부 인증 필요
                         .anyRequest().authenticated()

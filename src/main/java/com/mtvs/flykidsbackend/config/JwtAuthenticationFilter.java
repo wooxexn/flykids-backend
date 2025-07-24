@@ -42,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || uri.startsWith("/swagger-ui")
                 || uri.startsWith("/swagger-resources")
                 || uri.startsWith("/api/route/points")
+                || uri.equals("/error")
                 || (uri.matches("/api/missions/.*/intro") && "GET".equals(request.getMethod()))) {
             chain.doFilter(request, response); // 필터 무시
             return;
