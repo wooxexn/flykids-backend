@@ -128,13 +128,25 @@ public class JwtUtil {
     }
 
     /**
-     * HTTP 요청에서 Bearer 토큰 추출
+     * 요청에서 JWT 토큰을 추출하는 메서드
+     * 우선순위:
+     * 1. Authorization 헤더의 Bearer 토큰
+     * 2. 쿼리 파라미터의 token 값 (WebSocket 등에서 사용)
      */
     public String resolveToken(HttpServletRequest request) {
+        // 1. 헤더에서 Bearer 토큰 먼저 추출
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(BEARER_PREFIX.length());
         }
+
+        // 2. WebSocket이나 기타 요청에서 ?token= 쿼리 스트링으로 제공된 경우 허용
+        String queryToken = request.getParameter("token");
+        if (queryToken != null && !queryToken.isBlank()) {
+            return queryToken;
+        }
+
         return null;
     }
+
 }
