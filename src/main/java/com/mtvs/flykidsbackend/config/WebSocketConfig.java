@@ -16,7 +16,6 @@ import org.springframework.web.socket.config.annotation.*;
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final AudioStreamHandler audioStreamHandler;
-    private final HttpHandshakeInterceptor handshakeInterceptor;
 
     /**
      * WebSocket 핸들러를 등록하는 메서드
@@ -25,7 +24,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(audioStreamHandler, "/ws/audio")
-                .addInterceptors(handshakeInterceptor)
                 .setAllowedOrigins("*"); // CORS 정책 허용 (유니티 클라이언트에서 접속 가능)
+
     }
 }

@@ -1,7 +1,5 @@
 package com.mtvs.flykidsbackend.domain.ai.handler;
 
-import com.mtvs.flykidsbackend.config.security.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -11,11 +9,9 @@ import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class AudioStreamHandler extends BinaryWebSocketHandler {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws Exception {
@@ -51,32 +47,11 @@ public class AudioStreamHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String userId = (String) session.getAttributes().get("userId");
-        if (userId == null) {
-            log.warn("WebSocket 인증 실패 - userId 없음");
-            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Missing userId"));
-            return;
-        }
-
-        log.info("WebSocket 연결 성공 - 세션 ID = {}, 사용자 ID = {}", session.getId(), userId);
+        log.info("WebSocket 연결 성공 - 세션 ID = {}", session.getId());
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         log.info("WebSocket 연결 종료됨: 세션 ID = {}", session.getId());
-    }
-
-    // 쿼리 스트링에서 토큰 추출
-    private String getTokenFromQuery(WebSocketSession session) {
-        String query = session.getUri().getQuery(); // 예: token=abc.def.ghi
-        if (query == null) return null;
-
-        for (String param : query.split("&")) {
-            String[] pair = param.split("=");
-            if (pair.length == 2 && pair[0].equals("token")) {
-                return pair[1];
-            }
-        }
-        return null;
     }
 }
