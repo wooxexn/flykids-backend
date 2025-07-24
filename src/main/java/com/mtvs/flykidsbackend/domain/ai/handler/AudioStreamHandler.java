@@ -51,15 +51,13 @@ public class AudioStreamHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String token = getTokenFromQuery(session);
-
-        if (token == null || !jwtTokenProvider.validateToken(token)) {
-            log.warn("WebSocket 인증 실패 - 잘못된 토큰");
-            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid or missing token"));
+        String userId = (String) session.getAttributes().get("userId");
+        if (userId == null) {
+            log.warn("WebSocket 인증 실패 - userId 없음");
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Missing userId"));
             return;
         }
 
-        String userId = jwtTokenProvider.getUserIdFromToken(token);
         log.info("WebSocket 연결 성공 - 세션 ID = {}, 사용자 ID = {}", session.getId(), userId);
     }
 
