@@ -39,6 +39,9 @@ public class JwtTokenProvider {
     protected void init() {
         byte[] keyBytes = Base64.getEncoder().encode(secretKey.getBytes());
         this.key = Keys.hmacShaKeyFor(keyBytes);
+
+        log.info("🧪 Loaded secretKey = {}", secretKey);
+        log.info("🧪 Encoded Base64 key = {}", Base64.getEncoder().encodeToString(secretKey.getBytes()));
     }
 
     /**
@@ -114,4 +117,6 @@ public class JwtTokenProvider {
                 .build()
                 .parseClaimsJws(token);
     }
+
+
 }
