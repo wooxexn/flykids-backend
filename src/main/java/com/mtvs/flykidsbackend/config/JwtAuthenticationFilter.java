@@ -50,6 +50,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 기존 토큰 인증 로직 유지
         String token = jwtUtil.resolveToken(request);
+        
+        // JWT 토큰 디버깅 로그 추가
+        if (uri.equals("/api/audio-stream")) {
+            System.out.println("=== JWT 인증 디버그 (/api/audio-stream) ===");
+            System.out.println("URI: " + uri);
+            System.out.println("Method: " + request.getMethod());
+            System.out.println("Authorization Header: " + request.getHeader("Authorization"));
+            System.out.println("Resolved Token: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
+            System.out.println("Token Valid: " + (token != null ? jwtUtil.validateToken(token) : "false"));
+            System.out.println("Current Auth: " + SecurityContextHolder.getContext().getAuthentication());
+            System.out.println("============================================");
+        }
 
         if (token != null && jwtUtil.validateToken(token)
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -74,6 +86,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(auth);
+            
+            // 인증 성공 로그
+            if (uri.equals("/api/audio-stream")) {
+                System.out.println("JWT 인증 성공! User: " + username + ", Role: " + role);
+            }
         }
 
         chain.doFilter(request, response);
