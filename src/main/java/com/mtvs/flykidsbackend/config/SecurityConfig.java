@@ -54,6 +54,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-resources/**",
                                 "/api/route/points",
+                                "/api/audio-stream",  // Unity 음성 API 허용
+                                "/api/voice-feedback", // TTS API 허용
                                 "/ws/**",
                                 "/error"
                         ).permitAll()
