@@ -4,19 +4,25 @@ import com.mtvs.flykidsbackend.domain.ai.dto.TtsRequestDto;
 import com.mtvs.flykidsbackend.domain.ai.dto.TtsResponseDto;
 import com.mtvs.flykidsbackend.domain.ai.service.TtsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * 유니티 → 텍스트 전달 → mp3 URL 반환용 컨트롤러
+ * AI 서버와 연동하여 음성 처리를 담당하는 컨트롤러
  */
 @Tag(
-        name = "Voice Feedback",
-        description = "유저의 음성 데이터를 AI 서버에 전달하고, TTS로 생성된 음성(mp3) URL을 반환하는 API입니다."
+        name = "Voice Feedback API",
+        description = "음성 입력을 받아 AI 서버에서 처리 후 음성 응답을 반환하는 API"
 )
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -24,6 +30,8 @@ public class VoiceFeedbackController {
 
     private final TtsService ttsService;
     private final RestTemplate restTemplate;
+
+    private static final String AI_SERVER_URL = "http://221.163.19.142:58014/api/v1/chatbot/audio";
 
     @Operation(
             summary = "텍스트 → 음성(mp3) 변환 요청",
@@ -36,27 +44,85 @@ public class VoiceFeedbackController {
     }
 
     @Operation(
-            summary = "음성 파일(STT) 업로드 (binary)",
-            description = "유저의 음성(wav/mp3)을 바이너리로 업로드하면 AI 서버에 전달하여 음성 분석 결과를 반환합니다."
+            summary = "음성 파일 업로드 및 AI 응답 받기",
+            description = "WAV 음성 파일을 업로드하면 AI 서버에서 STT → 챗봇 처리 → TTS 과정을 거쳐 음성 응답(WAV)을 반환합니다."
     )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "정상 처리 - AI 서버로부터 음성 응답 수신",
+                    content = @Content(
+                            mediaType = "application/octet-stream",
+                            schema = @Schema(type = "string", format = "binary")
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Content-Type 오류 (application/octet-stream이 아님)"),
+            @ApiResponse(responseCode = "422", description = "요청 파라미터 오류 (WAV 형식 오류 등)"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     @PostMapping(
             value = "/audio-stream",
-            consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE
+            consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
     )
-    public ResponseEntity<TtsResponseDto> uploadVoice(@RequestBody byte[] audioBytes) {
+    public ResponseEntity<byte[]> processVoiceInput(@RequestBody byte[] audioData) {
+        log.info("음성 데이터 수신 - 크기: {} bytes", audioData.length);
+
+        // 입력 데이터 검증
+        if (audioData == null || audioData.length == 0) {
+            log.warn("빈 음성 데이터 수신");
+            return ResponseEntity.badRequest().build();
+        }
+
+        // AI 서버 요청 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentLength(audioData.length);
 
-        HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioBytes, headers);
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioData, headers);
 
-        ResponseEntity<TtsResponseDto> response = restTemplate.exchange(
-                "http://221.163.19.142:58014/api/v1/chatbot/audio",
-                HttpMethod.POST,
-                requestEntity,
-                TtsResponseDto.class
-        );
+        try {
+            log.info("AI 서버로 음성 데이터 전송 시작 - URL: {}", AI_SERVER_URL);
 
-        return ResponseEntity.ok(response.getBody());
+            ResponseEntity<byte[]> aiResponse = restTemplate.exchange(
+                    AI_SERVER_URL,
+                    HttpMethod.POST,
+                    requestEntity,
+                    byte[].class
+            );
+
+            byte[] responseAudio = aiResponse.getBody();
+
+            if (responseAudio == null || responseAudio.length == 0) {
+                log.warn("AI 서버로부터 빈 응답 수신");
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+
+            log.info("AI 서버로부터 음성 응답 수신 완료 - 크기: {} bytes", responseAudio.length);
+
+            // 응답 헤더 설정
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            responseHeaders.setContentLength(responseAudio.length);
+            responseHeaders.setCacheControl(CacheControl.noCache());
+
+            return ResponseEntity.ok()
+                    .headers(responseHeaders)
+                    .body(responseAudio);
+
+        } catch (Exception e) {
+            log.error("AI 서버 통신 중 오류 발생 - URL: {}, Error: {}", AI_SERVER_URL, e.getMessage(), e);
+
+            // 에러 타입에 따른 적절한 HTTP 상태 코드 반환
+            if (e.getMessage() != null) {
+                if (e.getMessage().contains("400")) {
+                    return ResponseEntity.badRequest().build();
+                } else if (e.getMessage().contains("422")) {
+                    return ResponseEntity.unprocessableEntity().build();
+                }
+            }
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
-
 }
