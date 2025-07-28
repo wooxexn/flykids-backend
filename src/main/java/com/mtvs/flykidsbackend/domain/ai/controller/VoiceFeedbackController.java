@@ -90,14 +90,14 @@ public class VoiceFeedbackController {
         String contentType = request.getContentType();
         String userAgent = request.getHeader("User-Agent");
         String authorization = request.getHeader("Authorization");
-        
+
         log.info("음성 데이터 수신 - 크기: {} bytes", audioData.length);
         log.info("Content-Type: {}", contentType);
         log.info("User-Agent: {}", userAgent);
         log.info("Authorization: {}", authorization != null ? "Bearer ***" : "없음");
 
         // Content-Type 검증
-        if (contentType == null || (!contentType.equals("application/octet-stream") 
+        if (contentType == null || (!contentType.equals("application/octet-stream")
                 && !contentType.startsWith("audio/"))) {
             log.warn("잘못된 Content-Type: {}, application/octet-stream 또는 audio/* 이어야 함", contentType);
             return ResponseEntity.badRequest()
@@ -162,7 +162,7 @@ public class VoiceFeedbackController {
         } catch (Exception e) {
             log.error("AI 서버 통신 중 오류 발생 - URL: {}, Error: {}", AI_SERVER_URL, e.getMessage(), e);
 
-            // 403 오류도 CORS 헤더와 함께 반환
+            // 기존 에러 응답 처리 유지
             HttpHeaders errorHeaders = new HttpHeaders();
             errorHeaders.add("Access-Control-Allow-Origin", "*");
 
