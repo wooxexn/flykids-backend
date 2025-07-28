@@ -39,10 +39,11 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtFilter) throws Exception {
+                                                   JwtAuthenticationFilter jwtFilter,
+                                                   CorsConfigurationSource corsConfigurationSource) throws Exception {
 
         http
-                .cors(withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))  // 이 부분만 바꿔주세요
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -60,7 +61,6 @@ public class SecurityConfig {
                                 "/ws/**",
                                 "/error"
                         ).permitAll()
-                        // 그 외는 전부 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
