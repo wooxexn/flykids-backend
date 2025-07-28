@@ -2,6 +2,7 @@ package com.mtvs.flykidsbackend.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -39,8 +40,8 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtFilter,
-                                                   CorsConfigurationSource corsConfigurationSource) throws Exception {
+                                                   @Qualifier("corsConfigurationSource") CorsConfigurationSource corsConfigurationSource,
+                                                   JwtAuthenticationFilter jwtFilter) throws Exception {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))  // 이 부분만 바꿔주세요
