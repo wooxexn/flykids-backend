@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -63,19 +64,19 @@ public class VoiceFeedbackController {
     }
 
     @Operation(
-            summary = "음성 파일 업로드 및 AI 응답 받기",
-            description = "WAV 음성 파일을 업로드하면 AI 서버에서 STT → 챗봇 처리 → TTS 과정을 거쳐 음성 응답(WAV)을 반환합니다."
+            summary = "음성 파일 업로드 및 AI 응답 스트리밍 반환",
+            description = "WAV 음성 파일을 업로드하면 AI 서버에서 STT → 챗봇 처리 → TTS 과정을 거쳐 음성 응답(WAV)을 스트리밍 방식으로 청크 단위 반환합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "정상 처리 - AI 서버로부터 음성 응답 수신",
+                    description = "정상 처리 - AI 서버로부터 음성 응답 스트리밍",
                     content = @Content(
                             mediaType = "application/octet-stream",
                             schema = @Schema(type = "string", format = "binary")
                     )
             ),
-            @ApiResponse(responseCode = "400", description = "Content-Type 오류 (application/octet-stream이 아님)"),
+            @ApiResponse(responseCode = "400", description = "Content-Type 오류 또는 빈 데이터"),
             @ApiResponse(responseCode = "403", description = "CORS 오류 - 도메인 접근 권한 없음"),
             @ApiResponse(responseCode = "422", description = "요청 파라미터 오류 (WAV 형식 오류 등)"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
@@ -86,23 +87,22 @@ public class VoiceFeedbackController {
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
     )
     @CrossOrigin(origins = "*", allowedHeaders = "*")
-    public ResponseEntity<byte[]> processVoiceInput(@RequestBody byte[] audioData, HttpServletRequest request) {
-        String contentType = request.getContentType();
-        String userAgent = request.getHeader("User-Agent");
-        String authorization = request.getHeader("Authorization");
+    public ResponseEntity<StreamingResponseBody> processVoiceInput(
+            @RequestBody byte[] audioData,
+            HttpServletRequest request) {
 
+        String contentType = request.getContentType();
         log.info("음성 데이터 수신 - 크기: {} bytes", audioData.length);
         log.info("Content-Type: {}", contentType);
-        log.info("User-Agent: {}", userAgent);
-        log.info("Authorization: {}", authorization != null ? "Bearer ***" : "없음");
 
         // Content-Type 검증
-        if (contentType == null || (!contentType.equals("application/octet-stream")
-                && !contentType.startsWith("audio/"))) {
+        if (contentType == null || (!contentType.equals("application/octet-stream") && !contentType.startsWith("audio/"))) {
             log.warn("잘못된 Content-Type: {}, application/octet-stream 또는 audio/* 이어야 함", contentType);
             return ResponseEntity.badRequest()
                     .header("Access-Control-Allow-Origin", "*")
-                    .body("Content-Type must be application/octet-stream or audio/*".getBytes());
+                    .body(outputStream -> {
+                        outputStream.write("Content-Type must be application/octet-stream or audio/*".getBytes());
+                    });
         }
 
         // 입력 데이터 검증
@@ -113,72 +113,61 @@ public class VoiceFeedbackController {
                     .build();
         }
 
-        // AI 서버 요청 헤더 설정 (403 오류 방지)
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentLength(audioData.length);
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        responseHeaders.add("Access-Control-Allow-Origin", "*");
+        responseHeaders.add("Access-Control-Allow-Methods", "POST, OPTIONS");
+        responseHeaders.add("Access-Control-Allow-Headers", "Content-Type");
 
-        // AI 서버 403 오류 방지를 위한 추가 헤더
-        headers.add("User-Agent", "FlyKids-Backend/1.0");
-        headers.add("Accept", "*/*");
-        headers.add("Connection", "keep-alive");
+        StreamingResponseBody stream = outputStream -> {
+            try {
+                // AI 서버 요청 헤더 설정 (403 오류 방지)
+                HttpHeaders aiHeaders = new HttpHeaders();
+                aiHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                aiHeaders.setContentLength(audioData.length);
+                aiHeaders.add("User-Agent", "FlyKids-Backend/1.0");
+                aiHeaders.add("Accept", "*/*");
+                aiHeaders.add("Connection", "keep-alive");
 
-        HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioData, headers);
+                HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioData, aiHeaders);
 
-        try {
-            log.info("AI 서버로 음성 데이터 전송 시작 - URL: {}", AI_SERVER_URL);
+                log.info("AI 서버로 음성 데이터 전송 시작 - URL: {}", AI_SERVER_URL);
 
-            ResponseEntity<byte[]> aiResponse = restTemplate.exchange(
-                    AI_SERVER_URL,
-                    HttpMethod.POST,
-                    requestEntity,
-                    byte[].class
-            );
+                ResponseEntity<byte[]> aiResponse = restTemplate.exchange(
+                        AI_SERVER_URL,
+                        HttpMethod.POST,
+                        requestEntity,
+                        byte[].class
+                );
 
-            byte[] responseAudio = aiResponse.getBody();
+                byte[] responseBytes = aiResponse.getBody();
 
-            if (responseAudio == null || responseAudio.length == 0) {
-                log.warn("AI 서버로부터 빈 응답 수신");
-                return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                        .header("Access-Control-Allow-Origin", "*")
-                        .build();
-            }
-
-            log.info("AI 서버로부터 음성 응답 수신 완료 - 크기: {} bytes", responseAudio.length);
-
-            // Unity를 위한 CORS 헤더 포함 응답
-            HttpHeaders responseHeaders = new HttpHeaders();
-            responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            responseHeaders.setContentLength(responseAudio.length);
-            responseHeaders.setCacheControl(CacheControl.noCache());
-            responseHeaders.add("Access-Control-Allow-Origin", "*");
-            responseHeaders.add("Access-Control-Allow-Methods", "POST, OPTIONS");
-            responseHeaders.add("Access-Control-Allow-Headers", "Content-Type");
-
-            return ResponseEntity.ok()
-                    .headers(responseHeaders)
-                    .body(responseAudio);
-
-        } catch (Exception e) {
-            log.error("AI 서버 통신 중 오류 발생 - URL: {}, Error: {}", AI_SERVER_URL, e.getMessage(), e);
-
-            // 기존 에러 응답 처리 유지
-            HttpHeaders errorHeaders = new HttpHeaders();
-            errorHeaders.add("Access-Control-Allow-Origin", "*");
-
-            if (e.getMessage() != null) {
-                if (e.getMessage().contains("400")) {
-                    return ResponseEntity.badRequest().headers(errorHeaders).build();
-                } else if (e.getMessage().contains("403")) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).headers(errorHeaders).build();
-                } else if (e.getMessage().contains("422")) {
-                    return ResponseEntity.unprocessableEntity().headers(errorHeaders).build();
+                if (responseBytes == null || responseBytes.length == 0) {
+                    log.warn("AI 서버로부터 빈 응답 수신");
+                    return;
                 }
-            }
 
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .headers(errorHeaders)
-                    .build();
-        }
+                // 청크 단위로 응답 스트리밍 처리
+                int chunkSize = 4096;
+                int offset = 0;
+                while (offset < responseBytes.length) {
+                    int size = Math.min(chunkSize, responseBytes.length - offset);
+                    outputStream.write(responseBytes, offset, size);
+                    outputStream.flush();
+                    offset += size;
+                    try {
+                        Thread.sleep(10); // 네트워크 상황에 따라 조절 가능
+                    } catch (InterruptedException ignored) {}
+                }
+
+                log.info("AI 서버로부터 음성 응답 스트리밍 완료");
+
+            } catch (Exception e) {
+                log.error("AI 서버 통신 중 오류 발생 - URL: {}, Error: {}", AI_SERVER_URL, e.getMessage(), e);
+                throw e;
+            }
+        };
+
+        return new ResponseEntity<>(stream, responseHeaders, HttpStatus.OK);
     }
 }
