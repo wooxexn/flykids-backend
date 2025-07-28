@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class VoiceFeedbackController {
 
     private final TtsService ttsService;
@@ -38,9 +39,25 @@ public class VoiceFeedbackController {
             description = "사용자의 텍스트 요청을 AI 서버로 전송하여 TTS(mp3) 음성 URL을 반환합니다."
     )
     @PostMapping("/voice-feedback")
+    @CrossOrigin(origins = "*")
     public ResponseEntity<TtsResponseDto> getVoiceFeedback(@RequestBody TtsRequestDto requestDto) {
         TtsResponseDto responseDto = ttsService.requestTts(requestDto);
         return ResponseEntity.ok(responseDto);
+    }
+
+    /**
+     * Unity에서 발생하는 OPTIONS preflight 요청 처리
+     */
+    @RequestMapping(value = "/audio-stream", method = RequestMethod.OPTIONS)
+    public ResponseEntity<Void> handleOptionsRequest() {
+        log.info("OPTIONS preflight 요청 수신 - Unity CORS 처리");
+
+        return ResponseEntity.ok()
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "POST, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+                .header("Access-Control-Max-Age", "3600")
+                .build();
     }
 
     @Operation(
@@ -57,6 +74,7 @@ public class VoiceFeedbackController {
                     )
             ),
             @ApiResponse(responseCode = "400", description = "Content-Type 오류 (application/octet-stream이 아님)"),
+            @ApiResponse(responseCode = "403", description = "CORS 오류 - 도메인 접근 권한 없음"),
             @ApiResponse(responseCode = "422", description = "요청 파라미터 오류 (WAV 형식 오류 등)"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
@@ -65,19 +83,27 @@ public class VoiceFeedbackController {
             consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
     )
+    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<byte[]> processVoiceInput(@RequestBody byte[] audioData) {
         log.info("음성 데이터 수신 - 크기: {} bytes", audioData.length);
 
         // 입력 데이터 검증
         if (audioData == null || audioData.length == 0) {
             log.warn("빈 음성 데이터 수신");
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
         }
 
-        // AI 서버 요청 헤더 설정
+        // AI 서버 요청 헤더 설정 (403 오류 방지)
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         headers.setContentLength(audioData.length);
+
+        // AI 서버 403 오류 방지를 위한 추가 헤더
+        headers.add("User-Agent", "FlyKids-Backend/1.0");
+        headers.add("Accept", "*/*");
+        headers.add("Connection", "keep-alive");
 
         HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioData, headers);
 
@@ -95,16 +121,21 @@ public class VoiceFeedbackController {
 
             if (responseAudio == null || responseAudio.length == 0) {
                 log.warn("AI 서버로부터 빈 응답 수신");
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+                return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .build();
             }
 
             log.info("AI 서버로부터 음성 응답 수신 완료 - 크기: {} bytes", responseAudio.length);
 
-            // 응답 헤더 설정
+            // Unity를 위한 CORS 헤더 포함 응답
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             responseHeaders.setContentLength(responseAudio.length);
             responseHeaders.setCacheControl(CacheControl.noCache());
+            responseHeaders.add("Access-Control-Allow-Origin", "*");
+            responseHeaders.add("Access-Control-Allow-Methods", "POST, OPTIONS");
+            responseHeaders.add("Access-Control-Allow-Headers", "Content-Type");
 
             return ResponseEntity.ok()
                     .headers(responseHeaders)
@@ -113,16 +144,23 @@ public class VoiceFeedbackController {
         } catch (Exception e) {
             log.error("AI 서버 통신 중 오류 발생 - URL: {}, Error: {}", AI_SERVER_URL, e.getMessage(), e);
 
-            // 에러 타입에 따른 적절한 HTTP 상태 코드 반환
+            // 403 오류도 CORS 헤더와 함께 반환
+            HttpHeaders errorHeaders = new HttpHeaders();
+            errorHeaders.add("Access-Control-Allow-Origin", "*");
+
             if (e.getMessage() != null) {
                 if (e.getMessage().contains("400")) {
-                    return ResponseEntity.badRequest().build();
+                    return ResponseEntity.badRequest().headers(errorHeaders).build();
+                } else if (e.getMessage().contains("403")) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).headers(errorHeaders).build();
                 } else if (e.getMessage().contains("422")) {
-                    return ResponseEntity.unprocessableEntity().build();
+                    return ResponseEntity.unprocessableEntity().headers(errorHeaders).build();
                 }
             }
 
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .headers(errorHeaders)
+                    .build();
         }
     }
 }
