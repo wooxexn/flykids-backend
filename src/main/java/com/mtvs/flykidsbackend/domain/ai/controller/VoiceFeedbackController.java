@@ -15,6 +15,8 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 /**
  * AI 서버와 연동하여 음성 처리를 담당하는 컨트롤러
  */
@@ -80,12 +82,28 @@ public class VoiceFeedbackController {
     })
     @PostMapping(
             value = "/audio-stream",
-            consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE, "audio/wav", "audio/*"},
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
     )
     @CrossOrigin(origins = "*", allowedHeaders = "*")
-    public ResponseEntity<byte[]> processVoiceInput(@RequestBody byte[] audioData) {
+    public ResponseEntity<byte[]> processVoiceInput(@RequestBody byte[] audioData, HttpServletRequest request) {
+        String contentType = request.getContentType();
+        String userAgent = request.getHeader("User-Agent");
+        String authorization = request.getHeader("Authorization");
+        
         log.info("음성 데이터 수신 - 크기: {} bytes", audioData.length);
+        log.info("Content-Type: {}", contentType);
+        log.info("User-Agent: {}", userAgent);
+        log.info("Authorization: {}", authorization != null ? "Bearer ***" : "없음");
+
+        // Content-Type 검증
+        if (contentType == null || (!contentType.equals("application/octet-stream") 
+                && !contentType.startsWith("audio/"))) {
+            log.warn("잘못된 Content-Type: {}, application/octet-stream 또는 audio/* 이어야 함", contentType);
+            return ResponseEntity.badRequest()
+                    .header("Access-Control-Allow-Origin", "*")
+                    .body("Content-Type must be application/octet-stream or audio/*".getBytes());
+        }
 
         // 입력 데이터 검증
         if (audioData == null || audioData.length == 0) {
