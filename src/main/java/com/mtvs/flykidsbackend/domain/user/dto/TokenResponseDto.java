@@ -19,4 +19,7 @@ public class TokenResponseDto {
 
     @Schema(description = "리프레시 토큰", example = "eyJhbGciOiJIUzI1NiJ9...")
     private final String refreshToken;
+
+    @Schema(description = "사용자 닉네임", example = "드론강자")
+    private final String nickname;
 }

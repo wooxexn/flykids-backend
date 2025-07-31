@@ -56,6 +56,6 @@ public class AuthController {
         // 새로운 액세스 토큰 생성
         String newAccessToken = jwtUtil.createAccessToken(user.getUsername(), user.getRole().name());
 
-        return ResponseEntity.ok(new TokenResponseDto(newAccessToken, refreshToken));
+        return ResponseEntity.ok(new TokenResponseDto(newAccessToken, refreshToken, user.getNickname()));
     }
 }

@@ -97,7 +97,7 @@ public class UserServiceImpl implements UserService {
         String refreshToken = jwtUtil.createRefreshToken(user.getUsername());
 
         // 두 토큰을 묶어 반환
-        return new TokenResponseDto(accessToken, refreshToken);
+        return new TokenResponseDto(accessToken, refreshToken, user.getNickname());
     }
 
     /**
@@ -273,5 +273,7 @@ public class UserServiceImpl implements UserService {
         return !userRepository.existsByUsernameAndStatus(
                 username, User.UserStatus.ACTIVE);
     }
+
+
 
 }
