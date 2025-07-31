@@ -18,6 +18,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.io.InputStream;
+
 /**
  * AI 서버와 연동하여 음성 처리를 담당하는 컨트롤러
  */
@@ -92,80 +94,49 @@ public class VoiceFeedbackController {
             HttpServletRequest request) {
 
         String contentType = request.getContentType();
-        log.info("음성 데이터 수신 - 크기: {} bytes", audioData.length);
-        log.info("Content-Type: {}", contentType);
+        log.info("음성 데이터 수신 - 크기: {} bytes, Content-Type: {}", audioData.length, contentType);
 
         // Content-Type 검증
-        if (contentType == null || (!contentType.equals("application/octet-stream") && !contentType.startsWith("audio/"))) {
-            log.warn("잘못된 Content-Type: {}, application/octet-stream 또는 audio/* 이어야 함", contentType);
+        if (contentType == null ||
+                (!contentType.equals(MediaType.APPLICATION_OCTET_STREAM_VALUE) && !contentType.startsWith("audio/"))) {
+            log.warn("잘못된 Content-Type: {}", contentType);
             return ResponseEntity.badRequest()
                     .header("Access-Control-Allow-Origin", "*")
-                    .body(outputStream -> {
-                        outputStream.write("Content-Type must be application/octet-stream or audio/*".getBytes());
-                    });
+                    .body(os -> os.write("Content-Type must be application/octet-stream or audio/*".getBytes()));
         }
 
-        // 입력 데이터 검증
-        if (audioData == null || audioData.length == 0) {
-            log.warn("빈 음성 데이터 수신");
-            return ResponseEntity.badRequest()
-                    .header("Access-Control-Allow-Origin", "*")
-                    .build();
-        }
-
+        // 응답 헤더 설정
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         responseHeaders.add("Access-Control-Allow-Origin", "*");
         responseHeaders.add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        responseHeaders.add("Access-Control-Allow-Headers", "Content-Type");
+        responseHeaders.add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+        // ※ 수정: StreamingResponseBody 로 AI 서버 스트림을 그대로 중계
         StreamingResponseBody stream = outputStream -> {
-            try {
-                // AI 서버 요청 헤더 설정 (403 오류 방지)
-                HttpHeaders aiHeaders = new HttpHeaders();
-                aiHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-                aiHeaders.setContentLength(audioData.length);
-                aiHeaders.add("User-Agent", "FlyKids-Backend/1.0");
-                aiHeaders.add("Accept", "*/*");
-                aiHeaders.add("Connection", "keep-alive");
-
-                HttpEntity<byte[]> requestEntity = new HttpEntity<>(audioData, aiHeaders);
-
-                log.info("AI 서버로 음성 데이터 전송 시작 - URL: {}", AI_SERVER_URL);
-
-                ResponseEntity<byte[]> aiResponse = restTemplate.exchange(
-                        AI_SERVER_URL,
-                        HttpMethod.POST,
-                        requestEntity,
-                        byte[].class
-                );
-
-                byte[] responseBytes = aiResponse.getBody();
-
-                if (responseBytes == null || responseBytes.length == 0) {
-                    log.warn("AI 서버로부터 빈 응답 수신");
-                    return;
-                }
-
-                // 청크 단위로 응답 스트리밍 처리
-                int chunkSize = 4096;
-                int offset = 0;
-                while (offset < responseBytes.length) {
-                    int size = Math.min(chunkSize, responseBytes.length - offset);
-                    outputStream.write(responseBytes, offset, size);
-                    outputStream.flush();
-                    offset += size;
-                    try {
-                        Thread.sleep(10); // 네트워크 상황에 따라 조절 가능
-                    } catch (InterruptedException ignored) {}
-                }
-
-                log.info("AI 서버로부터 음성 응답 스트리밍 완료");
-
-            } catch (Exception e) {
-                log.error("AI 서버 통신 중 오류 발생 - URL: {}, Error: {}", AI_SERVER_URL, e.getMessage(), e);
-                throw e;
-            }
+            // ※ 수정: restTemplate.execute 사용 → AI 서버 스트림을 바로 읽어 Unity로 전달
+            restTemplate.execute(
+                    AI_SERVER_URL,
+                    HttpMethod.POST,
+                    clientRequest -> {
+                        // ※ 수정: AI 서버 요청 헤더 설정
+                        clientRequest.getHeaders().setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                        clientRequest.getBody().write(audioData);  // 녹음된 WAV 바이트를 그대로 전송
+                    },
+                    clientResponse -> {
+                        // ※ 수정: AI 서버로부터 내려오는 바이트 스트림을 4KB 청크 단위로 읽어서 그대로 출력
+                        try (InputStream in = clientResponse.getBody()) {
+                            byte[] buffer = new byte[4096];
+                            int bytesRead;
+                            while ((bytesRead = in.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
+                                outputStream.flush();
+                            }
+                        }
+                        log.info("AI 서버 응답 중계 완료");
+                        return null;
+                    }
+            );
         };
 
         return new ResponseEntity<>(stream, responseHeaders, HttpStatus.OK);
