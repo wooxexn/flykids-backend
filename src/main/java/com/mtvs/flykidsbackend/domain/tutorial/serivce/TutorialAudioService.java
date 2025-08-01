@@ -1,6 +1,7 @@
 package com.mtvs.flykidsbackend.domain.tutorial.serivce;
 
 import com.mtvs.flykidsbackend.domain.tutorial.dto.TutorialAudioResponseDto;
+import com.mtvs.flykidsbackend.domain.tutorial.model.TutorialFailureStep;
 import com.mtvs.flykidsbackend.domain.tutorial.model.TutorialStep;
 
 /**
@@ -17,4 +18,6 @@ public interface TutorialAudioService {
      * @return 응답 DTO (단계명과 S3 URL 포함)
      */
     TutorialAudioResponseDto getAudioByStep(TutorialStep step);
+
+    TutorialAudioResponseDto getFailureAudioByStep(TutorialFailureStep failureStep);
 }

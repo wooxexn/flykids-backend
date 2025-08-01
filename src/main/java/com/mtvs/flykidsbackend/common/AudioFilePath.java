@@ -18,20 +18,20 @@ public class AudioFilePath {
     private static final String BASE_URL = "https://flykids-tts-files.s3.ap-northeast-2.amazonaws.com/";
 
     /** 미션별 시작 안내 멘트 */
-    public static final String MISSION1_INTRO = BASE_URL + "mission1_intro.mp3";
-    public static final String MISSION2_INTRO = BASE_URL + "mission2_intro.mp3";
-    public static final String MISSION3_INTRO = BASE_URL + "mission3_intro.mp3";
+    public static final String MISSION1_INTRO = BASE_URL + "mission1_intro.wav";
+    public static final String MISSION2_INTRO = BASE_URL + "mission2_intro.wav";
+    public static final String MISSION3_INTRO = BASE_URL + "mission3_intro.wav";
 
     /** 미션 완료/실패 피드백 멘트 */
-    public static final String MISSION_SUCCESS     = BASE_URL + "mission_success.mp3";         // 성공 공통
-    public static final String MISSION_FAIL_COMMON = BASE_URL + "mission_fail_common.mp3";     // 실패 공통
-    public static final String MISSION1_FAIL       = BASE_URL + "mission1_fail.mp3";
+    public static final String MISSION_SUCCESS     = BASE_URL + "mission_success.wav";         // 성공 공통
+    public static final String MISSION_FAIL_COMMON = BASE_URL + "mission_fail_common.wav";     // 실패 공통
+    public static final String MISSION1_FAIL       = BASE_URL + "mission1_fail.wav";
     public static final String MISSION2_FAIL       = BASE_URL + "mission2_fail.wav";
-    public static final String MISSION3_FAIL       = BASE_URL + "mission3_fail.mp3";
+    public static final String MISSION3_FAIL       = BASE_URL + "mission3_fail.wav";
 
     /** 실시간 경고용 멘트 */
     public static final String FEEDBACK_DEVIATION       = BASE_URL + "feedback_deviation.wav";       // 경로 이탈
     public static final String FEEDBACK_ALTITUDE_LOW    = BASE_URL + "feedback_altitude_low.wav";    // 고도 낮음
     public static final String FEEDBACK_ALTITUDE_HIGH   = BASE_URL + "feedback_altitude_high.wav";   // 고도 높음
-    public static final String FEEDBACK_COLLISION       = BASE_URL + "feedback_collision.mp3";       // 충돌 감지
+    public static final String FEEDBACK_COLLISION       = BASE_URL + "feedback_collision.wav";       // 충돌 감지
 }
