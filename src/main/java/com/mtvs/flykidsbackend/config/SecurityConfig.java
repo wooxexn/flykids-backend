@@ -59,6 +59,8 @@ public class SecurityConfig {
                                 "/api/route/points",
                                 "/api/audio-stream",
                                 "/api/voice-feedback",
+                                "/api/tutorials/audio/**",
+                                "/api/tutorials/failure-audio/**",
                                 "/ws/**",
                                 "/error"
                         ).permitAll()

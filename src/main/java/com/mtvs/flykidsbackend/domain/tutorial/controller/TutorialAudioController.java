@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Tutorial Audio", description = "튜토리얼 음성 재생을 위한 API")
 @RestController
 @RequestMapping("/api/tutorials")
+@CrossOrigin(origins = "*", allowedHeaders = {"Content-Type", "Authorization", "Accept"})
 @RequiredArgsConstructor
 public class TutorialAudioController {
 
